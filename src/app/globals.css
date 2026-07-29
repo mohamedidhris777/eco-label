@@ -1,0 +1,280 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────
+   EcoLabel X — Design System Tokens
+   ───────────────────────────────────────────── */
+@theme {
+  /* ── Colors ── */
+  --color-cosmos:          #050a18;
+  --color-cosmos-surface:  #0a1228;
+  --color-cosmos-border:   rgba(255, 255, 255, 0.08);
+
+  --color-neon-green:      #00ffaa;
+  --color-neon-green-dim:  #00cc88;
+  --color-neon-blue:       #00c8ff;
+  --color-neon-purple:     #9b59ff;
+  --color-neon-amber:      #ffb300;
+
+  --color-glass-bg:        rgba(255, 255, 255, 0.04);
+  --color-glass-border:    rgba(255, 255, 255, 0.10);
+  --color-glass-hover:     rgba(255, 255, 255, 0.08);
+
+  /* ── Gradients ── */
+  --gradient-eco:          linear-gradient(135deg, #00ffaa 0%, #00c8ff 100%);
+  --gradient-brand:        linear-gradient(135deg, #9b59ff 0%, #00c8ff 100%);
+  --gradient-hero:         radial-gradient(ellipse 80% 60% at 50% -10%, rgba(0, 255, 170, 0.15) 0%, transparent 70%);
+  --gradient-glow-green:   radial-gradient(circle, rgba(0, 255, 170, 0.2) 0%, transparent 70%);
+  --gradient-glow-blue:    radial-gradient(circle, rgba(0, 200, 255, 0.2) 0%, transparent 70%);
+
+  /* ── Typography ── */
+  --font-sans:    var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    ui-monospace, "Cascadia Code", "Fira Code", monospace;
+
+  /* ── Spacing ── */
+  --spacing-section: 6rem;
+
+  /* ── Radius ── */
+  --radius-glass: 1rem;
+  --radius-pill:  9999px;
+
+  /* ── Shadows ── */
+  --shadow-neon-green: 0 0 20px rgba(0, 255, 170, 0.25), 0 0 60px rgba(0, 255, 170, 0.1);
+  --shadow-neon-blue:  0 0 20px rgba(0, 200, 255, 0.25), 0 0 60px rgba(0, 200, 255, 0.1);
+  --shadow-glass:      0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  /* ── Transitions ── */
+  --transition-default: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow:    all 0.5s  cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring:  all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ─────────────────────────────────────────────
+   Base Reset & Global Styles
+   ───────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--color-cosmos);
+  color: #e2e8f0;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─────────────────────────────────────────────
+   Scrollbar Styling
+   ───────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-cosmos);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 170, 0.3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 170, 0.5);
+}
+
+/* ─────────────────────────────────────────────
+   Selection
+   ───────────────────────────────────────────── */
+::selection {
+  background: rgba(0, 255, 170, 0.25);
+  color: #fff;
+}
+
+/* ─────────────────────────────────────────────
+   Glassmorphism Utility
+   ───────────────────────────────────────────── */
+.glass {
+  background: var(--color-glass-bg);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-glass);
+  box-shadow: var(--shadow-glass);
+}
+
+.glass-hover {
+  transition: var(--transition-default);
+}
+.glass-hover:hover {
+  background: var(--color-glass-hover);
+  box-shadow: var(--shadow-glass), 0 0 0 1px rgba(0, 255, 170, 0.15);
+}
+
+/* ─────────────────────────────────────────────
+   Gradient Text Utilities
+   ───────────────────────────────────────────── */
+.text-gradient-eco {
+  background: var(--gradient-eco);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-brand {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─────────────────────────────────────────────
+   Neon Glow Utilities
+   ───────────────────────────────────────────── */
+.glow-green {
+  box-shadow: var(--shadow-neon-green);
+}
+.glow-blue {
+  box-shadow: var(--shadow-neon-blue);
+}
+.text-glow-green {
+  text-shadow: 0 0 10px rgba(0, 255, 170, 0.6), 0 0 30px rgba(0, 255, 170, 0.3);
+}
+
+/* ─────────────────────────────────────────────
+   Animated Grid Background
+   ───────────────────────────────────────────── */
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(0, 255, 170, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 170, 0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+.bg-dots {
+  background-image: radial-gradient(rgba(0, 255, 170, 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* ─────────────────────────────────────────────
+   Custom Animations
+   ───────────────────────────────────────────── */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-12px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.05); }
+}
+
+@keyframes slide-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes beacon {
+  0%   { box-shadow: 0 0 0 0 rgba(0, 255, 170, 0.6); }
+  70%  { box-shadow: 0 0 0 10px rgba(0, 255, 170, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 255, 170, 0); }
+}
+
+.animate-float       { animation: float 6s ease-in-out infinite; }
+.animate-pulse-glow  { animation: pulse-glow 3s ease-in-out infinite; }
+.animate-slide-up    { animation: slide-in-up 0.5s ease-out both; }
+.animate-slide-right { animation: slide-in-right 0.5s ease-out both; }
+.animate-spin-slow   { animation: spin-slow 12s linear infinite; }
+.animate-beacon      { animation: beacon 2s ease-out infinite; }
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* ─────────────────────────────────────────────
+   Focus Ring (Accessibility)
+   ───────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-neon-green);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ─────────────────────────────────────────────
+   Typography Utilities
+   ───────────────────────────────────────────── */
+.font-display { font-family: var(--font-display); }
+
+h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.02em; }
+
+/* ─────────────────────────────────────────────
+   Divider
+   ───────────────────────────────────────────── */
+.divider {
+  border-color: var(--color-cosmos-border);
+}
+
+/* ─────────────────────────────────────────────
+   Mission Control — Extra Animations
+   ───────────────────────────────────────────── */
+@keyframes data-flow {
+  0%   { transform: translateX(-100%); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateX(400%); opacity: 0; }
+}
+
+@keyframes scan-line {
+  0%   { top: 0%;   opacity: 0.6; }
+  50%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+@keyframes orbit {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes card-glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(0,255,170,0.08), 0 0 0 1px rgba(0,255,170,0.12); }
+  50%       { box-shadow: 0 0 40px rgba(0,255,170,0.18), 0 0 0 1px rgba(0,255,170,0.25); }
+}
+
+.animate-data-flow    { animation: data-flow 2.4s ease-in-out infinite; }
+.animate-scan-line    { animation: scan-line 3s linear infinite; }
+.animate-orbit        { animation: orbit 20s linear infinite; }
+.animate-card-glow    { animation: card-glow-pulse 2.5s ease-in-out infinite; }
+
