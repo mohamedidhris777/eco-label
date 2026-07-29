@@ -1,7 +1,9 @@
 @echo off
+chcp 65001 >nul
 title EcoLabel X — One-Click Startup Script
+cls
 echo ===================================================
-echo   🌿 EcoLabel X — ESG Intelligence Engine
+echo   EcoLabel X - ESG Intelligence Engine
 echo ===================================================
 echo.
 
@@ -13,8 +15,8 @@ start "EcoLabel X Frontend" cmd /k "cd /d %~dp0 && npm run dev"
 
 echo.
 echo ===================================================
-echo   ✅ Both servers launched successfully!
-echo   👉 Access website at: http://localhost:3000
+echo   [OK] Both servers launched successfully!
+echo   [URL] Access website at: http://localhost:3000
 echo ===================================================
 echo.
 pause
