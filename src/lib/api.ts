@@ -137,7 +137,9 @@ export interface GreenwashingReport {
 }
 
 export interface GreenwashingPdfResponse {
-  success:    boolean;
-  page_count: number;
-  report:     GreenwashingReport;
+  success:         boolean;
+  page_count:      number;
+  report:          GreenwashingReport;
+  verified_claims?: any[];
+  products?:        any[];
 }

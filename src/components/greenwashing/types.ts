@@ -58,9 +58,11 @@ export interface GreenwashingReport {
 }
 
 export interface AnalyzePDFResponse {
-  success:    boolean;
-  page_count: number;
-  report:     GreenwashingReport;
+  success:         boolean;
+  page_count:      number;
+  report:          GreenwashingReport;
+  verified_claims?: any[];
+  products?:        any[];
 }
 
 // ─── UI config ────────────────────────────────────────────────────────────────

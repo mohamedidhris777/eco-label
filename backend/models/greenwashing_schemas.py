@@ -64,9 +64,11 @@ class GreenwashingReport(BaseModel):
 
 class AnalyzePDFResponse(BaseModel):
     """Response for POST /api/greenwashing/pdf — full pipeline."""
-    success:    bool  = True
-    page_count: int
-    report:     GreenwashingReport
+    success:         bool            = True
+    page_count:      int
+    report:          GreenwashingReport
+    verified_claims: list[dict]      = Field(default_factory=list)
+    products:        list[dict]      = Field(default_factory=list)
 
 
 # ─── JSON-body request ────────────────────────────────────────────────────────

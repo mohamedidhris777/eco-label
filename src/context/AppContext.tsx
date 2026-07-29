@@ -226,16 +226,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }, 250);
 
     try {
-      const [greenwashingRes, verificationRes] = await Promise.all([
-        analyzeGreenwashingPdf(file),
-        verifyPdf(file).catch(() => null),
-      ]);
+      const greenwashingRes = await analyzeGreenwashingPdf(file);
       
       if (ticker) clearInterval(ticker);
       setProgress(100);
       setCurrentStage("Completed");
 
       const timestamp = new Date().toISOString();
+      const rawVerified = (greenwashingRes.verified_claims || []) as any[];
 
       const nextState: AppState = {
         filename: greenwashingRes.report.filename,
@@ -247,12 +245,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           filename: greenwashingRes.report.filename,
           size_bytes: file.size,
           page_count: greenwashingRes.page_count,
-          claims: (verificationRes?.results || []).map((r: any) => ({
+          claims: rawVerified.map((r: any) => ({
             claim: r.claim,
             page: r.page,
             confidence: r.original_confidence,
             category: r.category,
-            keywords_matched: r.keywords_matched,
+            keywords_matched: r.keywords_matched || [],
           })),
           summary: {
             total_claims: greenwashingRes.report.claim_breakdown.total,
@@ -272,12 +270,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             avg_confidence: 0.85,
           },
         },
-        verification: verificationRes || {
+        verification: {
           success: true,
           filename: greenwashingRes.report.filename,
           size_bytes: file.size,
           page_count: greenwashingRes.page_count,
-          results: [],
+          results: rawVerified,
           summary: {
             total_claims: greenwashingRes.report.claim_breakdown.total,
             verified: greenwashingRes.report.claim_breakdown.verified,
@@ -293,6 +291,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsAnalyzing(false);
     } catch (err: unknown) {
       if (ticker) clearInterval(ticker);
+      setProgress(0);
+      setCurrentStage("Uploading PDF");
       setIsAnalyzing(false);
       setErrorMsg(err instanceof Error ? err.message : "Failed to analyze PDF.");
     }

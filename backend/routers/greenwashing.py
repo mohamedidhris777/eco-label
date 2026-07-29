@@ -94,6 +94,9 @@ async def analyze_pdf(
         claims        = detect_claims(page_dicts)
         verified      = verify_claims(claims, page_dicts)
         raw           = analyze_greenwashing(verified, filename)
+        
+        from services.product_extractor import extract_products_from_pdf
+        extracted_prods = extract_products_from_pdf(page_dicts, claims)
     except HTTPException:
         raise
     except Exception as exc:
@@ -104,6 +107,8 @@ async def analyze_pdf(
     return AnalyzePDFResponse(
         page_count=page_count,
         report=_build_report(raw),
+        verified_claims=verified,
+        products=extracted_prods,
     )
 
 
