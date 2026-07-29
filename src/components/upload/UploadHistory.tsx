@@ -29,7 +29,7 @@ const HISTORY: HistoryItem[] = [
   { id: "h2",  name: "eu_organic_cert_bundle.pdf",     type: "pdf",   size: "12.1 MB",             uploadedAt: "Today, 10:18 AM", status: "success" },
   { id: "h3",  name: "product_photos_batch_07.png",    type: "image", size: "8.7 MB",              uploadedAt: "Today, 09:55 AM", status: "success" },
   { id: "h4",  name: "supply_chain_report_2026.xlsx",  type: "excel", size: "3.4 MB",  rows: 540,  uploadedAt: "Yesterday",       status: "success" },
-  { id: "h5",  name: "fairtrade_certificate.pdf",      type: "pdf",   size: "1.1 MB",              uploadedAt: "Yesterday",       status: "error", error: "Corrupted PDF — could not parse pages" },
+  { id: "h5",  name: "fairtrade_certificate.pdf",      type: "pdf",   size: "1.1 MB",              uploadedAt: "Yesterday",       status: "success" },
   { id: "h6",  name: "carbon_audit_h1_2026.xlsx",      type: "excel", size: "2.8 MB",  rows: 320,  uploadedAt: "Jul 27",          status: "success" },
   { id: "h7",  name: "logo_assets_hi_res.png",         type: "image", size: "22.4 MB",             uploadedAt: "Jul 27",          status: "success" },
   { id: "h8",  name: "ingredients_database_v4.csv",    type: "csv",   size: "9.6 MB",  rows: 4820, uploadedAt: "Jul 25",          status: "success" },
