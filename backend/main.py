@@ -20,10 +20,7 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-try:
-    from backend.routers import pdf, claims, verification, greenwashing, ai
-except ImportError:
-    from routers import pdf, claims, verification, greenwashing, ai
+from routers import pdf, claims, verification, greenwashing, ai
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
 
