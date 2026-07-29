@@ -4,10 +4,26 @@ Entry point: registers routers, configures CORS, and mounts the app.
 """
 
 import os
+import sys
 import logging
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Ensure backend directory is in sys.path for linter & runtime resolution
+_backend_dir = Path(__file__).parent.resolve()
+if str(_backend_dir) not in sys.path:
+    sys.path.insert(0, str(_backend_dir))
+
+# Load environment variables from .env file
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import pdf, claims, verification, greenwashing
+
+try:
+    from backend.routers import pdf, claims, verification, greenwashing, ai
+except ImportError:
+    from routers import pdf, claims, verification, greenwashing, ai
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
 
@@ -63,6 +79,7 @@ app.include_router(pdf.router,           prefix="/api/pdf",          tags=["PDF"
 app.include_router(claims.router,        prefix="/api/claims",       tags=["Claims"])
 app.include_router(verification.router,  prefix="/api/verify",       tags=["Verification"])
 app.include_router(greenwashing.router,  prefix="/api/greenwashing", tags=["Greenwashing"])
+app.include_router(ai.router,            prefix="/api/ai",           tags=["AI Engine"])
 
 # ─── Health check ─────────────────────────────────────────────────────────────
 
