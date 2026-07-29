@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DashboardTopNav }  from "@/components/dashboard/DashboardTopNav";
 import { RiskGauge }        from "@/components/greenwashing/RiskGauge";
 import { TrustScoreGauge }  from "@/components/results/TrustScoreGauge";
@@ -109,10 +109,15 @@ import { useApp } from "@/context/AppContext";
 export default function ResultsPage() {
   const { state: appState, isAnalyzing, progress: appProgress, errorMsg: appError } = useApp();
   const inputRef                  = useRef<HTMLInputElement>(null);
+  const [mounted, setMounted]     = useState(false);
   const [pageState, setPageState] = useState<PageState>("demo");
   const [localProgress, setProgress] = useState(0);
   const [localError, setErrorMsg]  = useState("");
   const [localData, setData]      = useState<ResultsData | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const data = localData || (appState.greenwashing ? mapResponse(appState.greenwashing as unknown as BackendResponse) : DEMO_RESULTS);
   const isDemo = !localData && !appState.greenwashing;
@@ -171,7 +176,7 @@ export default function ResultsPage() {
               )}
             </div>
             <p className="text-[10px] text-slate-600 mt-0.5">
-              {data.page_count} pages · Analyzed {new Date(data.analyzed_at).toLocaleTimeString()}
+              {data.page_count} pages · Analyzed {mounted ? new Date(data.analyzed_at).toLocaleTimeString() : "Recently"}
             </p>
           </div>
 
