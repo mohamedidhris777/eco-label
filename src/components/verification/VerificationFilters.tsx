@@ -21,6 +21,7 @@ interface VerificationFiltersProps {
   totalFiltered: number;
   totalAll:      number;
   onExport:      () => void;
+  onExportPdf?:  () => void;
 }
 
 const ALL_VERDICTS: Verdict[] = ["verified", "partially_verified", "not_verified"];
@@ -31,6 +32,7 @@ export function VerificationFilters({
   totalFiltered,
   totalAll,
   onExport,
+  onExportPdf,
 }: VerificationFiltersProps) {
 
   const toggleVerdict = (v: Verdict) => {
@@ -93,12 +95,24 @@ export function VerificationFilters({
           {totalFiltered}/{totalAll}
         </span>
 
+        {/* Download PDF */}
+        {onExportPdf && (
+          <button
+            onClick={onExportPdf}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold text-slate-950 transition-all duration-200 shadow-md hover:scale-105"
+            style={{ background: "linear-gradient(135deg, #00ffaa, #00d488)" }}
+            aria-label="Download verification report as PDF"
+          >
+            <DownloadIcon />
+            Download PDF
+          </button>
+        )}
+
         <button
           onClick={onExport}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-semibold text-[#00ffaa] border border-[rgba(0,255,170,0.25)] hover:bg-[rgba(0,255,170,0.06)] transition-all"
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-semibold text-slate-400 border border-white/8 hover:text-white transition-all"
           aria-label="Export verification results as JSON"
         >
-          <DownloadIcon />
           Export JSON
         </button>
       </div>

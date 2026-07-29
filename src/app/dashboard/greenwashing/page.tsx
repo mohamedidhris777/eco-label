@@ -20,6 +20,7 @@ import {
 import { API_ENDPOINTS } from "@/lib/api";
 import { RISK_CONFIG, type AnalyzePDFResponse, type GreenwashingReport } from "@/components/greenwashing/types";
 import { useApp } from "@/context/AppContext";
+import { downloadPdfReport, downloadJsonReport } from "@/lib/pdfExporter";
 
 const API_URL = API_ENDPOINTS.greenwashingPdf;
 
@@ -62,16 +63,23 @@ export default function GreenwashingPage() {
 
   // ─── Export ──────────────────────────────────────────────────────────────
 
-  const handleExport = () => {
+  const handleExportPdf = () => {
     if (!report) return;
-    const blob = new Blob([JSON.stringify({ ...report, exported_at: new Date().toISOString() }, null, 2)],
-                          { type: "application/json" });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a");
-    a.href     = url;
-    a.download = `greenwashing_${report.filename.replace(".pdf", "")}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadPdfReport({
+      filename: report.filename,
+      riskScore: report.risk_score,
+      riskLevel: report.risk_level,
+      totalClaims: report.claim_breakdown?.total,
+      verifiedClaims: report.claim_breakdown?.verified,
+      summary: report.summary,
+      reasons: report.reasons.map(r => ({ title: r.title, detail: `Category: ${r.category} | Severity: ${r.severity}` })),
+      recommendations: report.recommendations,
+    });
+  };
+
+  const handleExportJson = () => {
+    if (!report) return;
+    downloadJsonReport(report, report.filename);
   };
 
   // ─── Render ──────────────────────────────────────────────────────────────
@@ -114,7 +122,7 @@ export default function GreenwashingPage() {
 
         {/* ── Results ── */}
         {effectiveState === "done" && report && (
-          <Results report={report} tab={tab} setTab={setTab} onExport={handleExport} onReset={reset} />
+          <Results report={report} tab={tab} setTab={setTab} onExportPdf={handleExportPdf} onExportJson={handleExportJson} onReset={reset} />
         )}
 
         <input ref={inputRef} type="file" accept=".pdf,application/pdf"
@@ -128,13 +136,14 @@ export default function GreenwashingPage() {
 // ─── Results layout ───────────────────────────────────────────────────────────
 
 function Results({
-  report, tab, setTab, onExport, onReset,
+  report, tab, setTab, onExportPdf, onExportJson, onReset,
 }: {
-  report:    GreenwashingReport;
-  tab:       ActiveTab;
-  setTab:    (t: ActiveTab) => void;
-  onExport:  () => void;
-  onReset:   () => void;
+  report:        GreenwashingReport;
+  tab:           ActiveTab;
+  setTab:        (t: ActiveTab) => void;
+  onExportPdf:   () => void;
+  onExportJson:  () => void;
+  onReset:       () => void;
 }) {
   const cfg   = RISK_CONFIG[report.risk_level];
   const tabs: { id: ActiveTab; label: string; count: number }[] = [
@@ -170,11 +179,16 @@ function Results({
 
           {/* Actions */}
           <div className="flex flex-col gap-2 self-start">
-            <button onClick={onExport}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all"
-              style={{ color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}
+            <button onClick={onExportPdf}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg hover:scale-105"
+              style={{ color: "#000", background: "linear-gradient(135deg, #00ffaa, #00d488)", border: "none" }}
+              aria-label="Download report as PDF">
+              <DownloadIcon /> Download PDF Report
+            </button>
+            <button onClick={onExportJson}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 border border-[rgba(255,255,255,0.08)] hover:text-white transition-all"
               aria-label="Export report as JSON">
-              <DownloadIcon /> Export JSON
+              Export JSON
             </button>
             <button onClick={onReset}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs text-slate-500 border border-[rgba(255,255,255,0.08)] hover:text-white transition-all">

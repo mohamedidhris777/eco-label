@@ -18,6 +18,7 @@ import { ClaimFilters, type ClaimFiltersState } from "@/components/claims/ClaimF
 import { API_ENDPOINTS } from "@/lib/api";
 import { ALL_CATEGORIES, type ClaimDetectionResponse, type ClaimResult } from "@/components/claims/types";
 import { useApp } from "@/context/AppContext";
+import { downloadPdfReport, downloadJsonReport } from "@/lib/pdfExporter";
 
 const API_URL   = API_ENDPOINTS.claimsDetect;
 const PAGE_SIZE  = 12;
@@ -162,6 +163,17 @@ export default function ClaimsPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleExportPdf = () => {
+    if (!result) return;
+    downloadPdfReport({
+      filename: result.filename,
+      totalClaims: result.claims.length,
+      verifiedClaims: result.claims.filter(c => c.confidence > 0.7).length,
+      summary: `Extracted and classified ${result.claims.length} sustainability claims from '${result.filename}' across ${result.page_count} pages.`,
+      reasons: filtered.slice(0, 8).map(c => ({ title: `[${c.category.toUpperCase()}] Page ${c.page}`, detail: c.claim })),
+    });
+  };
+
   const reset = () => {
     setPageState("idle");
     setResult(null);
@@ -241,6 +253,7 @@ export default function ClaimsPage() {
               totalFiltered={filtered.length}
               totalAll={result.claims.length}
               onExport={handleExport}
+              onExportPdf={handleExportPdf}
             />
 
             {/* New upload button */}

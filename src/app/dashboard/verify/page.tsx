@@ -23,6 +23,7 @@ import {
   type VerifyPDFResponse,
   VERDICT_CONFIG,
 } from "@/components/verification/types";
+import { downloadPdfReport, downloadJsonReport } from "@/lib/pdfExporter";
 import { ALL_CATEGORIES } from "@/components/claims/types";
 
 import { API_ENDPOINTS } from "@/lib/api";
@@ -186,6 +187,17 @@ export default function VerifyPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleExportPdf = () => {
+    if (!result) return;
+    downloadPdfReport({
+      filename: result.filename,
+      totalClaims: result.results.length,
+      verifiedClaims: result.summary.verified,
+      summary: `Verified ${result.results.length} sustainability claims from '${result.filename}' (${result.summary.verified} verified, ${result.summary.partially_verified} partially verified, ${result.summary.not_verified} unverified).`,
+      reasons: result.results.slice(0, 10).map(r => ({ title: `[${r.verdict.toUpperCase()}] ${r.claim}`, detail: r.verdict_reason })),
+    });
+  };
+
   const reset = () => {
     setPageState("idle");
     setResult(null);
@@ -262,6 +274,7 @@ export default function VerifyPage() {
               totalFiltered={filtered.length}
               totalAll={result.results.length}
               onExport={handleExport}
+              onExportPdf={handleExportPdf}
             />
 
             {/* Verdict legend + new upload */}

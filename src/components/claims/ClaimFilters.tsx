@@ -20,6 +20,7 @@ interface ClaimFiltersProps {
   totalFiltered:  number;
   totalAll:       number;
   onExport:       () => void;
+  onExportPdf?:   () => void;
 }
 
 export function ClaimFilters({
@@ -28,6 +29,7 @@ export function ClaimFilters({
   totalFiltered,
   totalAll,
   onExport,
+  onExportPdf,
 }: ClaimFiltersProps) {
   const allSelected = filters.categories.size === ALL_CATEGORIES.length;
 
@@ -95,13 +97,25 @@ export function ClaimFilters({
           {totalFiltered} / {totalAll} claims
         </span>
 
+        {/* Download PDF */}
+        {onExportPdf && (
+          <button
+            onClick={onExportPdf}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold text-slate-950 transition-all duration-200 shadow-md hover:scale-105"
+            style={{ background: "linear-gradient(135deg, #00ffaa, #00d488)" }}
+            aria-label="Download claims report as PDF"
+          >
+            <DownloadIcon />
+            Download PDF
+          </button>
+        )}
+
         {/* Export JSON */}
         <button
           onClick={onExport}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-semibold text-[#00ffaa] border border-[rgba(0,255,170,0.25)] hover:bg-[rgba(0,255,170,0.06)] transition-all duration-200"
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-semibold text-slate-400 border border-white/8 hover:text-white transition-all duration-200"
           aria-label="Export filtered claims as JSON"
         >
-          <DownloadIcon />
           Export JSON
         </button>
       </div>

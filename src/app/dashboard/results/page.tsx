@@ -17,6 +17,7 @@ import {
 } from "@/components/results/types";
 import { type RiskLevel } from "@/components/greenwashing/types";
 import { API_ENDPOINTS } from "@/lib/api";
+import { downloadPdfReport, downloadJsonReport } from "@/lib/pdfExporter";
 
 const API_URL = API_ENDPOINTS.greenwashingPdf;
 type PageState = "demo" | "uploading" | "done" | "error";
@@ -125,17 +126,21 @@ export default function ResultsPage() {
     analyzePDF(file);
   }, [analyzePDF]);
 
-  const handleExport = () => {
-    const blob = new Blob(
-      [JSON.stringify({ ...data, exported_at: new Date().toISOString() }, null, 2)],
-      { type: "application/json" },
-    );
-    const url = URL.createObjectURL(blob);
-    const a   = document.createElement("a");
-    a.href     = url;
-    a.download = `results_${data.filename.replace(".pdf", "")}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleExportPdf = () => {
+    downloadPdfReport({
+      filename: data.filename,
+      trustScore: data.trust_score,
+      riskScore: data.greenwashing.risk_score,
+      riskLevel: data.greenwashing.risk_level,
+      totalClaims: data.claims.total,
+      verifiedClaims: data.claims.verified,
+      summary: `Analysis of ${data.claims.total} sustainability claims from '${data.filename}' indicates ${data.greenwashing.risk_level.toUpperCase()} greenwashing risk (${data.greenwashing.risk_score}/100).`,
+      reasons: data.greenwashing.top_reasons.map(r => ({ title: "Greenwashing Indicator", detail: r })),
+    });
+  };
+
+  const handleExportJson = () => {
+    downloadJsonReport(data, data.filename);
   };
 
   const tc = trustColor(data.trust_score);
@@ -188,6 +193,14 @@ export default function ResultsPage() {
 
           <div className="flex items-center gap-2">
             <button
+              onClick={handleExportPdf}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[11px] font-bold text-slate-950 transition-all shadow-md hover:scale-105"
+              style={{ background: "linear-gradient(135deg, #00ffaa, #00d488)" }}
+              aria-label="Download PDF report"
+            >
+              <DownloadIcon /> Download PDF Report
+            </button>
+            <button
               onClick={() => inputRef.current?.click()}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all"
               style={{ background: "rgba(155,89,255,0.12)", color: "#9b59ff", border: "1px solid rgba(155,89,255,0.3)" }}
@@ -195,10 +208,10 @@ export default function ResultsPage() {
               <UploadIcon /> Analyze PDF
             </button>
             <button
-              onClick={handleExport}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] text-slate-500 border border-white/8 hover:text-slate-300 transition-all"
+              onClick={handleExportJson}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] text-slate-400 border border-white/8 hover:text-slate-200 transition-all"
             >
-              <DownloadIcon /> Export JSON
+              Export JSON
             </button>
           </div>
         </div>
