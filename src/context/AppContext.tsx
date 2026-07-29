@@ -12,7 +12,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { analyzeGreenwashingPdf } from "@/lib/api";
+import { analyzeGreenwashingPdf, verifyPdf } from "@/lib/api";
 import type { ClaimDetectionResponse } from "@/components/claims/types";
 import type { VerifyPDFResponse } from "@/components/verification/types";
 import type { AnalyzePDFResponse } from "@/components/greenwashing/types";
@@ -226,7 +226,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }, 250);
 
     try {
-      const greenwashingRes = await analyzeGreenwashingPdf(file);
+      const [greenwashingRes, verificationRes] = await Promise.all([
+        analyzeGreenwashingPdf(file),
+        verifyPdf(file).catch(() => null),
+      ]);
       
       if (ticker) clearInterval(ticker);
       setProgress(100);
@@ -244,7 +247,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           filename: greenwashingRes.report.filename,
           size_bytes: file.size,
           page_count: greenwashingRes.page_count,
-          claims: [],
+          claims: (verificationRes?.results || []).map((r: any) => ({
+            claim: r.claim,
+            page: r.page,
+            confidence: r.original_confidence,
+            category: r.category,
+            keywords_matched: r.keywords_matched,
+          })),
           summary: {
             total_claims: greenwashingRes.report.claim_breakdown.total,
             high_confidence_count: greenwashingRes.report.claim_breakdown.verified,
@@ -263,7 +272,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             avg_confidence: 0.85,
           },
         },
-        verification: {
+        verification: verificationRes || {
           success: true,
           filename: greenwashingRes.report.filename,
           size_bytes: file.size,

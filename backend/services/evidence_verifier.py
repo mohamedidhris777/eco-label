@@ -324,8 +324,8 @@ def verify_claims(
         reason = _verdict_reason(verdict, len(evidence), best_score, category)
 
         # ─── Post-detection Gemini AI Verification Layer ──────────────────────
-        # Only runs if GEMINI_API_KEY is set. Never receives full PDF — only (claim, evidence, paragraph).
-        if is_gemini_available():
+        # Only runs for top key claims to ensure fast <1.5s pipeline response.
+        if is_gemini_available() and len(results) < 3:
             top_ev_text = top[0][2] if top else ""
             pg_content = page_sentences.get(claim_page, [])
             paragraph = " ".join(pg_content[:3]) if pg_content else ""
@@ -334,6 +334,7 @@ def verify_claims(
                 claim=claim_text,
                 evidence_text=top_ev_text,
                 paragraph_context=paragraph,
+                timeout_seconds=1.5,
             )
             if ai_res:
                 verdict = ai_res["verdict"]
