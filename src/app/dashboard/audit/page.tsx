@@ -130,6 +130,7 @@ function mapToResults(res: BackendResponse): ResultsData {
   };
 }
 
+import { downloadPdfReport } from "@/lib/pdfExporter";
 import { useApp } from "@/context/AppContext";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -144,12 +145,77 @@ export default function AuditPage() {
   const isDemo = !localReport && !appState.greenwashing;
   const uploading = isAnalyzing;
   const progress = isAnalyzing ? appProgress : localProgress;
-  const errorMsg = appError || localError;
+  const displayError = localError || (uploading ? appError : "");
 
-  const handlePrint = () => window.print();
+  const handleDownloadPdf = () => {
+    const gwReport = appState.greenwashing?.report;
+    
+    const claimsList = [
+      ...(report.claims.verified_list || []).map((c: any) => ({
+        claim: c.text,
+        category: c.category,
+        confidence: c.confidence,
+        status: c.verdict || "verified",
+        page: c.page,
+      })),
+      ...(report.claims.rejected_list || []).map((c: any) => ({
+        claim: c.text,
+        category: c.category,
+        confidence: c.confidence,
+        status: c.verdict || "unverified",
+        page: c.page,
+      })),
+    ];
 
+    const reasons = gwReport?.reasons
+      ? gwReport.reasons.map((r: any) => ({
+          title: r.title,
+          detail: r.description,
+          severity: r.severity,
+          category: r.category,
+        }))
+      : (report.greenwashing.top_reasons || []).map((t: string) => ({
+          title: t,
+          detail: "Flagged risk indicator requiring third-party verification and documentation.",
+          severity: "medium",
+        }));
+
+    const recommendations = gwReport?.recommendations
+      ? gwReport.recommendations.map((r: any) => ({
+          action: r.action,
+          rationale: r.rationale,
+          priority: r.priority,
+          category: r.category,
+        }))
+      : [
+          { action: "Publish Scope 1, 2, and 3 emissions inventory with base year documentation.", priority: "high" },
+          { action: "Obtain independent third-party verification (ISO 14064-3 assurance) for all published targets.", priority: "high" },
+          { action: "Provide specific numeric thresholds and measurement units for all environmental claims.", priority: "medium" },
+        ];
+
+    downloadPdfReport({
+      filename: report.filename,
+      reportId: report.report_id,
+      classification: report.classification,
+      period: report.period,
+      preparedBy: report.prepared_by,
+      analyzedAt: report.analyzed_at,
+      pageCount: report.page_count,
+      trustScore: report.trust_score,
+      riskScore: report.greenwashing.risk_score,
+      riskLevel: report.greenwashing.risk_level,
+      totalClaims: report.claims.total,
+      verifiedClaims: report.claims.verified,
+      unverifiedClaims: report.claims.not_verified,
+      summary: gwReport?.summary || `This sustainability audit was conducted by the EcoLabel X AI Audit Engine against '${report.filename}' (${report.page_count} pages, ${report.claims.total} claims analyzed). Overall Trust Score is ${report.trust_score}/100 with a ${report.greenwashing.risk_level} Risk level (${report.greenwashing.risk_score}/100).`,
+      claimsList,
+      reasons,
+      recommendations,
+    });
+  };
 
   const handleFile = useCallback((file: File) => {
+    setErrorMsg("");
     analyzePDF(file);
   }, [analyzePDF]);
 
@@ -197,14 +263,14 @@ export default function AuditPage() {
             </div>
           )}
 
-          {errorMsg && <span className="text-[11px] text-red-400">⚠ {errorMsg}</span>}
+          {displayError && <span className="text-[11px] text-red-400">⚠ {displayError}</span>}
 
           <div className="flex items-center gap-2">
             <button
-              onClick={handlePrint}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all"
-              style={{ background: "linear-gradient(135deg,#9b59ff,#00ffaa)", color: "#050a18" }}
-              aria-label="Download audit report as PDF"
+              onClick={handleDownloadPdf}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all hover:opacity-95 shadow-md"
+              style={{ background: "linear-gradient(135deg,#00ffaa,#9b59ff)", color: "#050a18" }}
+              aria-label="Download executive audit report as PDF"
             >
               <PrinterIcon /> Download PDF
             </button>
