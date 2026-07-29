@@ -7,9 +7,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePipelineStore } from "@/lib/hooks/usePipelineStore";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { useApp } from "@/context/AppContext";
+import { DEMO_RESULTS } from "@/components/results/types";
 
 type RiskLevel = "critical" | "high" | "medium" | "low";
 
@@ -22,30 +21,12 @@ interface Flag {
   detected: string;
 }
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
-
 const RISK_CONFIG: Record<RiskLevel, { label: string; color: string; bg: string }> = {
   critical: { label: "Critical", color: "#ef4444", bg: "rgba(239,68,68,0.12)"   },
   high:     { label: "High",     color: "#f97316", bg: "rgba(249,115,22,0.12)"  },
   medium:   { label: "Medium",   color: "#ffb300", bg: "rgba(255,179,0,0.12)"   },
   low:      { label: "Low",      color: "#00ffaa", bg: "rgba(0,255,170,0.12)"   },
 };
-
-const FLAGS: Flag[] = [
-  { id: "1", sku: "#4821", product: "EcoFresh Detergent",   claim: '"100% biodegradable" — no certification',      risk: "critical", detected: "2m ago" },
-  { id: "2", sku: "#3109", product: "GreenPack Bottles",    claim: '"Carbon neutral" — expired 2023 certificate',   risk: "high",     detected: "1h ago" },
-  { id: "3", sku: "#7742", product: "NaturaSoap Bar",       claim: '"Plant-based" — 40% synthetic content found',   risk: "medium",   detected: "3h ago" },
-  { id: "4", sku: "#0531", product: "OrganicOat Milk",      claim: '"Zero waste packaging" — unverified claim',     risk: "low",      detected: "6h ago" },
-];
-
-const DISTRIBUTION = [
-  { level: "critical" as RiskLevel, count: 1,  pct: 8   },
-  { level: "high"     as RiskLevel, count: 3,  pct: 25  },
-  { level: "medium"   as RiskLevel, count: 5,  pct: 42  },
-  { level: "low"      as RiskLevel, count: 3,  pct: 25  },
-];
-
-// ─── Gauge ────────────────────────────────────────────────────────────────────
 
 function RiskGauge({ riskScore, animated }: { riskScore: number; animated: boolean }) {
   const angle = animated ? (riskScore / 100) * 180 : 0;
@@ -79,45 +60,40 @@ function RiskGauge({ riskScore, animated }: { riskScore: number; animated: boole
             <circle cx="60" cy="60" r="5" fill="#f97316" />
           </g>
         </svg>
-        <div className="absolute bottom-0 left-0 text-[9px] text-slate-600">Low</div>
-        <div className="absolute bottom-0 right-0 text-[9px] text-slate-600">High</div>
       </div>
-      <p className="text-xs text-slate-500">
-        Risk Score: <span className="font-bold text-[#f97316]">{riskScore}/100</span>
-      </p>
+      <div className="text-center">
+        <span className="font-mono text-xl font-bold text-white">{riskScore}</span>
+        <span className="text-xs text-slate-500 font-medium">/100</span>
+      </div>
     </div>
   );
 }
 
-// ─── Flag Row ─────────────────────────────────────────────────────────────────
-
 function FlagRow({ flag }: { flag: Flag }) {
-  const cfg = RISK_CONFIG[flag.risk] ?? RISK_CONFIG.medium;
+  const cfg = RISK_CONFIG[flag.risk];
+
   return (
-    <div className="flex items-start gap-3 py-2.5 border-b border-[rgba(255,255,255,0.05)] last:border-0">
+    <div className="flex items-center justify-between py-2 border-b border-white/5 last:border-0 text-xs">
+      <div className="min-w-0 flex-1 pr-2">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[10px] text-slate-500">{flag.sku}</span>
+          <span className="font-semibold text-slate-200 truncate">{flag.product}</span>
+        </div>
+        <p className="text-[10px] text-slate-400 truncate mt-0.5" title={flag.claim}>{flag.claim}</p>
+      </div>
       <span
-        className="mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0"
-        style={{ color: cfg.color, background: cfg.bg }}
+        className="text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+        style={{ color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.color}30` }}
       >
         {cfg.label}
       </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2">
-          <p className="text-[11px] font-semibold text-white truncate">{flag.product}</p>
-          <span className="text-[10px] text-slate-600 flex-shrink-0">{flag.sku}</span>
-        </div>
-        <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">{flag.claim}</p>
-      </div>
-      <span className="text-[10px] text-slate-600 flex-shrink-0 mt-0.5">{flag.detected}</span>
     </div>
   );
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export function GreenwashingRiskCard() {
+  const { state } = useApp();
   const [animated, setAnimated] = useState(false);
-  const { state } = usePipelineStore();
 
   useEffect(() => {
     const t = setTimeout(() => setAnimated(true), 400);
@@ -126,30 +102,51 @@ export function GreenwashingRiskCard() {
 
   let riskScore = 48;
   let riskLevel = "Medium";
-  let subtitle = "12 claims under review";
-  let badgeLabel = "Medium Risk";
+  let subtitle = state.filename ? `Active Report: ${state.filename}` : "PDF Sustainability Risk Analysis";
   let badgeColor = "#ffb300";
-  let flags: Flag[] = FLAGS;
+
+  let flags: Flag[] = [];
 
   if (state.greenwashing?.report) {
     const r = state.greenwashing.report;
     riskScore = r.risk_score;
     riskLevel = r.risk_level;
     subtitle = `Report: ${r.filename}`;
-    badgeLabel = `${r.risk_level} Risk`;
     badgeColor = r.risk_color;
 
     if (r.reasons && r.reasons.length > 0) {
-      flags = r.reasons.slice(0, 4).map((res, i) => ({
+      flags = r.reasons.map((res, i) => ({
         id: String(i + 1),
-        sku: `Pg ${i + 1}`,
+        sku: `P. ${i + 1}`,
         product: res.title,
-        claim: res.description || "Identified risk signal in report disclosure",
+        claim: res.description || "Identified risk signal in document disclosure",
         risk: (res.severity in RISK_CONFIG ? res.severity : "medium") as RiskLevel,
         detected: "Analyzed",
       }));
     }
   }
+
+  if (flags.length === 0) {
+    // Extract flags from unverified claims in analysis or DEMO_RESULTS
+    const rejectedClaims = state.verification?.results?.filter(r => r.verdict === "not_verified")
+      || DEMO_RESULTS.claims.rejected_list;
+
+    flags = rejectedClaims.map((item: any, i: number) => ({
+      id: String(i + 1),
+      sku: `P. ${item.page || 1}`,
+      product: item.category ? `${item.category.toUpperCase()} Disclosure` : `Risk Signal ${i + 1}`,
+      claim: item.claim || item.text || "Unverified sustainability claim",
+      risk: (item.confidence < 0.2 ? "critical" : item.confidence < 0.4 ? "high" : "medium") as RiskLevel,
+      detected: "Analyzed",
+    }));
+  }
+
+  const distribution = [
+    { level: "critical" as RiskLevel, count: flags.filter(f => f.risk === "critical").length, pct: 20 },
+    { level: "high"     as RiskLevel, count: flags.filter(f => f.risk === "high").length,     pct: 30 },
+    { level: "medium"   as RiskLevel, count: flags.filter(f => f.risk === "medium").length,   pct: 35 },
+    { level: "low"      as RiskLevel, count: flags.filter(f => f.risk === "low").length,      pct: 15 },
+  ];
 
   return (
     <div
@@ -166,7 +163,7 @@ export function GreenwashingRiskCard() {
           className="text-[10px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
           style={{ color: badgeColor, background: `${badgeColor}20`, border: `1px solid ${badgeColor}40` }}
         >
-          {badgeLabel}
+          {riskLevel} Risk
         </span>
       </div>
 
@@ -178,11 +175,11 @@ export function GreenwashingRiskCard() {
       {/* Distribution */}
       <div className="space-y-1">
         <div className="flex justify-between text-[10px] text-slate-500 mb-1">
-          <span>Risk Distribution</span>
+          <span>Risk Distribution ({flags.length} signals)</span>
           <span>Level: {riskLevel}</span>
         </div>
         <div className="flex h-2 rounded-full overflow-hidden gap-0.5">
-          {DISTRIBUTION.map((d) => (
+          {distribution.map((d) => (
             <div
               key={d.level}
               className="h-full transition-all duration-700"
@@ -197,8 +194,8 @@ export function GreenwashingRiskCard() {
       </div>
 
       {/* Flagged items */}
-      <div className="mt-1 flex-1">
-        <p className="text-[11px] font-semibold text-slate-400 mb-2">Detected Risk Signals & Evidence</p>
+      <div className="mt-1 flex-1 overflow-y-auto max-h-[180px]">
+        <p className="text-[11px] font-semibold text-slate-400 mb-2">Detected Risk Signals & Evidence ({flags.length})</p>
         <div>
           {flags.map((flag) => (
             <FlagRow key={flag.id} flag={flag} />

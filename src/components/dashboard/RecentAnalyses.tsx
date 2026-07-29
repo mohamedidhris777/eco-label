@@ -1,15 +1,15 @@
 /**
  * EcoLabel X — Recent Analyses Table
  *
- * Paginated table of the last product scans with EcoScore rings,
- * status badges, delta indicators, and row-level actions.
+ * Paginated table of product scans dynamically generated from the uploaded PDF document.
+ * Zero hardcoded mock arrays.
  */
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils/cn";
-
-// ─── Types & Data ─────────────────────────────────────────────────────────────
+import { useApp } from "@/context/AppContext";
+import { extractProductsFromAnalysis, type ProductItem } from "@/lib/productExtractor";
 
 type AnalysisStatus = "verified" | "pending" | "flagged" | "expired";
 
@@ -32,19 +32,6 @@ const STATUS_CONFIG: Record<AnalysisStatus, { label: string; color: string; bg: 
   flagged:  { label: "Flagged",  color: "#ef4444", bg: "rgba(239,68,68,0.1)"   },
   expired:  { label: "Expired",  color: "#64748b", bg: "rgba(100,116,139,0.1)" },
 };
-
-const DATA: Analysis[] = [
-  { id: "1",  product: "Organic Oat Milk 1L",       brand: "Oatly",         category: "Beverage",    score: 92, delta:  4, status: "verified", labels: 5, carbon: "1.2 kg",   analysedAt: "2m ago"  },
-  { id: "2",  product: "Bamboo Fibre T-Shirt",       brand: "Allbirds",      category: "Apparel",     score: 78, delta:  2, status: "verified", labels: 3, carbon: "3.8 kg",   analysedAt: "18m ago" },
-  { id: "3",  product: "EcoFresh Dish Soap 500ml",   brand: "Method",        category: "Household",   score: 61, delta: -6, status: "flagged",  labels: 2, carbon: "0.9 kg",   analysedAt: "1h ago"  },
-  { id: "4",  product: "Reusable Water Bottle",      brand: "Klean Kanteen", category: "Household",   score: 88, delta:  1, status: "verified", labels: 4, carbon: "2.1 kg",   analysedAt: "2h ago"  },
-  { id: "5",  product: "Wild Berry Granola Bar",     brand: "Lärabar",       category: "Food",        score: 74, delta:  0, status: "pending",  labels: 2, carbon: "0.6 kg",   analysedAt: "4h ago"  },
-  { id: "6",  product: "Shea Butter Body Lotion",    brand: "The Body Shop", category: "Beauty",      score: 83, delta:  3, status: "verified", labels: 6, carbon: "1.8 kg",   analysedAt: "5h ago"  },
-  { id: "7",  product: "Recycled PET Fleece Jacket", brand: "Patagonia",     category: "Apparel",     score: 95, delta:  5, status: "verified", labels: 7, carbon: "5.2 kg",   analysedAt: "8h ago"  },
-  { id: "8",  product: "Fair Trade Dark Chocolate",  brand: "Tony's",        category: "Food",        score: 89, delta:  2, status: "verified", labels: 4, carbon: "0.4 kg",   analysedAt: "12h ago" },
-  { id: "9",  product: "GreenPack Carry Bags",       brand: "EcoGreen",      category: "Packaging",   score: 48, delta: -9, status: "flagged",  labels: 1, carbon: "0.3 kg",   analysedAt: "1d ago"  },
-  { id: "10", product: "Lavender Essential Oil",     brand: "Aura Cacia",    category: "Beauty",      score: 71, delta: -2, status: "expired",  labels: 2, carbon: "0.2 kg",   analysedAt: "2d ago"  },
-];
 
 const PAGE_SIZE = 6;
 
@@ -92,7 +79,7 @@ function AnalysisRow({ row }: { row: Analysis }) {
         <div className="flex items-center gap-3">
           <MiniScoreRing score={row.score} />
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-white truncate">{row.product}</p>
+            <p className="text-xs font-semibold text-white truncate max-w-[200px]" title={row.product}>{row.product}</p>
             <p className="text-[10px] text-slate-500 mt-0.5">{row.brand}</p>
           </div>
         </div>
@@ -100,56 +87,51 @@ function AnalysisRow({ row }: { row: Analysis }) {
 
       {/* Category */}
       <td className="py-3 px-4 hidden md:table-cell">
-        <span className="text-[10px] text-slate-400 px-2 py-0.5 rounded-md" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+        <span className="text-[11px] text-slate-400 font-medium px-2 py-0.5 rounded bg-white/5 border border-white/5">
           {row.category}
         </span>
       </td>
 
       {/* Delta */}
       <td className="py-3 px-4 hidden lg:table-cell">
-        <span
-          className={cn(
-            "text-[10px] font-semibold",
-            row.delta > 0 ? "text-[#00ffaa]" : row.delta < 0 ? "text-red-400" : "text-slate-500"
-          )}
-        >
-          {row.delta > 0 ? `+${row.delta}` : row.delta === 0 ? "±0" : row.delta}
+        <span className={`text-[11px] font-mono font-semibold ${row.delta >= 0 ? "text-[#00ffaa]" : "text-red-400"}`}>
+          {row.delta >= 0 ? `+${row.delta}` : row.delta}
         </span>
       </td>
 
       {/* Status */}
       <td className="py-3 px-4">
         <span
-          className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
-          style={{ color: cfg.color, background: cfg.bg }}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold"
+          style={{ color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.color}30` }}
         >
-          <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: cfg.color }} />
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.color }} />
           {cfg.label}
         </span>
       </td>
 
       {/* Labels */}
-      <td className="py-3 px-4 hidden lg:table-cell">
-        <span className="text-xs text-slate-400">{row.labels}</span>
+      <td className="py-3 px-4 text-xs text-slate-400 font-mono hidden lg:table-cell">
+        {row.labels}
       </td>
 
       {/* Carbon */}
-      <td className="py-3 px-4 hidden xl:table-cell">
-        <span className="text-[11px] text-[#00c8ff] font-medium">{row.carbon}</span>
+      <td className="py-3 px-4 text-xs font-mono font-semibold text-slate-300 hidden xl:table-cell">
+        {row.carbon}
       </td>
 
-      {/* Time */}
-      <td className="py-3 px-4 hidden sm:table-cell">
-        <span className="text-[10px] text-slate-600 whitespace-nowrap">{row.analysedAt}</span>
+      {/* Analysed */}
+      <td className="py-3 px-4 text-[11px] text-slate-500 hidden sm:table-cell">
+        {row.analysedAt}
       </td>
 
       {/* Actions */}
-      <td className="py-3 px-4">
+      <td className="py-3 px-4 text-right">
         <button
-          className="opacity-0 group-hover:opacity-100 text-[10px] text-[#00ffaa] hover:underline transition-opacity"
+          className="text-[10px] font-semibold text-slate-500 hover:text-[#00ffaa] transition-colors"
           aria-label={`View analysis for ${row.product}`}
         >
-          View →
+          View &rarr;
         </button>
       </td>
     </tr>
@@ -159,9 +141,34 @@ function AnalysisRow({ row }: { row: Analysis }) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function RecentAnalyses() {
+  const { state } = useApp();
   const [page, setPage] = useState(0);
-  const totalPages = Math.ceil(DATA.length / PAGE_SIZE);
-  const rows = DATA.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  // Extract products dynamically from document analysis
+  const dynamicAnalyses: Analysis[] = useMemo(() => {
+    const rawProducts = extractProductsFromAnalysis(state);
+    return rawProducts.map((p: ProductItem, idx: number) => {
+      const status: AnalysisStatus =
+        p.status === "Verified" ? "verified" :
+        p.status === "Review" ? "pending" : "flagged";
+
+      return {
+        id: p.id,
+        product: p.name,
+        brand: p.category,
+        category: p.category,
+        score: p.score,
+        delta: Math.floor((p.score - 70) / 5),
+        status: status,
+        labels: p.certs,
+        carbon: p.carbon,
+        analysedAt: `Page ${p.page}`,
+      };
+    });
+  }, [state]);
+
+  const totalPages = Math.ceil(dynamicAnalyses.length / PAGE_SIZE) || 1;
+  const rows = dynamicAnalyses.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
     <section aria-labelledby="recent-heading">
@@ -169,11 +176,11 @@ export function RecentAnalyses() {
       <div className="flex items-center justify-between mb-4">
         <h2 id="recent-heading" className="font-display font-semibold text-white text-sm">
           Recent Analyses
-          <span className="ml-2 text-xs font-normal text-slate-500">{DATA.length} products</span>
+          <span className="ml-2 text-xs font-normal text-slate-500">{dynamicAnalyses.length} products</span>
         </h2>
         <div className="flex items-center gap-3">
           <button className="text-[11px] text-slate-500 hover:text-white transition-colors">Export CSV</button>
-          <button className="text-[11px] text-[#00ffaa] hover:underline">View all →</button>
+          <a href="/dashboard/products" className="text-[11px] text-[#00ffaa] hover:underline">View all &rarr;</a>
         </div>
       </div>
 
@@ -216,7 +223,7 @@ export function RecentAnalyses() {
         {/* Pagination */}
         <div className="flex items-center justify-between px-4 py-3 border-t border-[rgba(255,255,255,0.06)]">
           <p className="text-[10px] text-slate-600">
-            Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, DATA.length)} of {DATA.length}
+            Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, dynamicAnalyses.length)} of {dynamicAnalyses.length}
           </p>
           <div className="flex items-center gap-1">
             <button
