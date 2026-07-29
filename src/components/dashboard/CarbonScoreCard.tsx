@@ -167,15 +167,29 @@ const SCOPES = [
   { scope: "Scope 3", label: "— Value chain", value: 3870, color: "#9b59ff" },
 ] as const;
 
-const TOTAL = SCOPES.reduce((acc, s) => acc + s.value, 0);
+import { useApp } from "@/context/AppContext";
+import { extractCarbonMetrics } from "@/lib/dynamicMetricsExtractor";
 
 export function CarbonScoreCard() {
   const [animated, setAnimated] = useState(false);
+  const { state } = useApp();
 
   useEffect(() => {
     const t = setTimeout(() => setAnimated(true), 250);
     return () => clearTimeout(t);
   }, []);
+
+  const metrics = extractCarbonMetrics(state);
+  const totalInTonnes = Math.round(metrics.totalEmissions * 1000);
+
+  const scopes = [
+    { scope: "Scope 1", label: "— Direct",      value: Math.round(metrics.scope1 * 1000), color: "#00ffaa" },
+    { scope: "Scope 2", label: "— Energy",      value: Math.round(metrics.scope2 * 1000), color: "#00c8ff" },
+    { scope: "Scope 3", label: "— Value chain", value: Math.round(metrics.scope3 * 1000), color: "#9b59ff" },
+  ];
+
+  const total = scopes.reduce((acc, s) => acc + s.value, 0) || 1;
+  const isCustomReport = Boolean(state.filename);
 
   return (
     <div
@@ -184,15 +198,17 @@ export function CarbonScoreCard() {
     >
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
+        <div className="min-w-0">
           <h3 className="font-display font-semibold text-white text-sm">Carbon Score</h3>
-          <p className="text-[11px] text-slate-500 mt-0.5">Total portfolio footprint</p>
+          <p className="text-[11px] text-slate-500 mt-0.5 truncate max-w-[180px]">
+            {isCustomReport ? `Report: ${state.filename}` : "Total portfolio footprint"}
+          </p>
         </div>
         <span
-          className="text-[10px] font-semibold px-2.5 py-1 rounded-full"
+          className="text-[10px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
           style={{ color: "#00ffaa", background: "rgba(0,255,170,0.1)", border: "1px solid rgba(0,255,170,0.2)" }}
         >
-          ↓ −18% YoY
+          ↓ −{metrics.rawMaterialReduction}% YoY
         </span>
       </div>
 
@@ -200,17 +216,19 @@ export function CarbonScoreCard() {
       <div>
         <div className="flex items-end gap-1.5 mb-0.5">
           <span className="font-display font-bold text-4xl text-[#00ffaa]">
-            {(TOTAL / 1000).toFixed(1)}
+            {metrics.totalEmissions}
           </span>
           <span className="text-slate-400 text-sm mb-1.5">kt CO₂e / yr</span>
         </div>
-        <p className="text-[10px] text-slate-600">Across {147} products · Methodology: GHG Protocol</p>
+        <p className="text-[10px] text-slate-600">
+          {isCustomReport ? `Calculated from ${state.filename} (${state.pageCount ?? 1} pages)` : "Across 147 products · Methodology: GHG Protocol"}
+        </p>
       </div>
 
       {/* Scope bars */}
       <div className="space-y-2.5">
-        {SCOPES.map((s) => (
-          <ScopeBar key={s.scope} {...s} total={TOTAL} animated={animated} />
+        {scopes.map((s) => (
+          <ScopeBar key={s.scope} {...s} total={total} animated={animated} />
         ))}
       </div>
 

@@ -19,7 +19,7 @@
  */
 import type { Metadata } from "next";
 import { DashboardTopNav }       from "@/components/dashboard/DashboardTopNav";
-import { StatCard }              from "@/components/dashboard/StatCard";
+import { OverviewKpis }          from "@/components/dashboard/OverviewKpis";
 import { AIAgentStatusCards }    from "@/components/dashboard/AIAgentStatusCards";
 import { UploadCard }            from "@/components/dashboard/UploadCard";
 import { TrustScoreCard }        from "@/components/dashboard/TrustScoreCard";
@@ -31,47 +31,6 @@ export const metadata: Metadata = {
   title:       "Dashboard — EcoLabel X",
   description: "Your sustainability intelligence overview.",
 };
-
-// ─── KPI Stat Data ────────────────────────────────────────────────────────────
-
-const KPI_STATS = [
-  {
-    label:      "Portfolio EcoScore",
-    value:      87,
-    unit:       "/ 100",
-    delta:      3.2,
-    deltaLabel: "vs last month",
-    icon:       "🌿",
-    color:      "green" as const,
-  },
-  {
-    label:      "Carbon Reduced",
-    value:      "18.4",
-    unit:       "kt CO₂e",
-    delta:      18,
-    deltaLabel: "YoY reduction",
-    icon:       "🍃",
-    color:      "blue" as const,
-  },
-  {
-    label:      "Active Eco Labels",
-    value:      382,
-    unit:       "certs",
-    delta:      12,
-    deltaLabel: "new this month",
-    icon:       "🏅",
-    color:      "purple" as const,
-  },
-  {
-    label:      "Products Verified",
-    value:      147,
-    unit:       "SKUs",
-    delta:      -2,
-    deltaLabel: "2 pending review",
-    icon:       "📦",
-    color:      "amber" as const,
-  },
-] as const;
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -89,14 +48,8 @@ export default function DashboardPage() {
         id="dashboard-content"
         className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8"
       >
-        {/* ── KPI Stat Cards ─────────────────────────────────── */}
-        <section aria-label="Key performance indicators">
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-            {KPI_STATS.map((stat) => (
-              <StatCard key={stat.label} {...stat} />
-            ))}
-          </div>
-        </section>
+        {/* ── KPI Stat Cards (Dynamic) ───────────────────────── */}
+        <OverviewKpis />
 
         {/* ── AI Agent Status Cards ───────────────────────────── */}
         <AIAgentStatusCards />

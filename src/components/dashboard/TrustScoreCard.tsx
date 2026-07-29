@@ -83,7 +83,7 @@ function DimBar({ label, value, color, animated }: { label: string; value: numbe
   );
 }
 
-import { usePipelineStore } from "@/lib/hooks/usePipelineStore";
+import { useApp } from "@/context/AppContext";
 
 const DEFAULT_DIMENSIONS = [
   { label: "Label Authenticity",  value: 94, color: "#00ffaa" },
@@ -95,7 +95,7 @@ const DEFAULT_DIMENSIONS = [
 
 export function TrustScoreCard() {
   const [animated, setAnimated] = useState(false);
-  const { state } = usePipelineStore();
+  const { state } = useApp();
 
   useEffect(() => {
     const t = setTimeout(() => setAnimated(true), 300);
