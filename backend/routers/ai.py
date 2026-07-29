@@ -21,9 +21,9 @@ logger = logging.getLogger("ecolabelx.router.ai")
 router = APIRouter()
 
 class AIChatRequest(BaseModel):
-    query: str = Field(..., example="Explain why Scope 3 emissions claim is unverified.")
-    filename: Optional[str] = Field(None, example="2025-sustainability-report.pdf")
-    risk_score: Optional[int] = Field(None, example=40)
+    query: str = Field(..., json_schema_extra={"example": "Explain why Scope 3 emissions claim is unverified."})
+    filename: Optional[str] = Field(None, json_schema_extra={"example": "2025-sustainability-report.pdf"})
+    risk_score: Optional[int] = Field(None, json_schema_extra={"example": 40})
 
 class AIChatResponse(BaseModel):
     query: str
@@ -33,12 +33,12 @@ class AIChatResponse(BaseModel):
     provider: str
 
 class AIInsightsRequest(BaseModel):
-    filename: str = Field(..., example="sustainability_report.pdf")
-    page_count: int = Field(..., example=24)
-    risk_level: str = Field(..., example="medium")
-    risk_score: int = Field(..., example=40)
-    total_claims: int = Field(..., example=271)
-    verified_claims: int = Field(..., example=61)
+    filename: str = Field(..., json_schema_extra={"example": "sustainability_report.pdf"})
+    page_count: int = Field(..., json_schema_extra={"example": 24})
+    risk_level: str = Field(..., json_schema_extra={"example": "medium"})
+    risk_score: int = Field(..., json_schema_extra={"example": 40})
+    total_claims: int = Field(..., json_schema_extra={"example": 271})
+    verified_claims: int = Field(..., json_schema_extra={"example": 61})
 
 class AIInsightsResponse(BaseModel):
     executive_summary: dict[str, Any]
