@@ -24,7 +24,7 @@ def create_deck():
     prs = Presentation()
     prs.slide_width  = Inches(13.333)
     prs.slide_height = Inches(7.5)
-    blank_layout     = prs.slide_layouts[6] # blank slide layout
+    blank_layout     = prs.slide_layouts[6]
 
     def set_background(slide):
         background = slide.background
@@ -65,76 +65,110 @@ def create_deck():
             f"💡 WHAT JUDGES SHOULD NOTICE:\n{judges}"
         )
 
-    def add_card(slide, left, top, width, height, title="", subtitle="", bg=CARD_BG, border=CARD_BORDER):
+    def add_card(slide, left, top, width, height, title="", subtitle="", value="", val_color=WHITE, bg=CARD_BG, border=CARD_BORDER):
         shape = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(left), Inches(top), Inches(width), Inches(height))
         shape.fill.solid()
         shape.fill.fore_color.rgb = bg
         shape.line.color.rgb = border
-        shape.line.width = Pt(1)
+        shape.line.width = Pt(1.5)
 
-        if title or subtitle:
-            tf = shape.text_frame
-            tf.word_wrap = True
-            tf.margin_left = Inches(0.2)
-            tf.margin_top = Inches(0.2)
-            tf.margin_right = Inches(0.2)
+        tf = shape.text_frame
+        tf.word_wrap = True
+        tf.margin_left = Inches(0.25)
+        tf.margin_top = Inches(0.25)
+        tf.margin_right = Inches(0.25)
+        tf.margin_bottom = Inches(0.25)
+
+        if value:
+            p_val = tf.paragraphs[0]
+            p_val.text = value
+            p_val.font.size = Pt(32)
+            p_val.font.bold = True
+            p_val.font.color.rgb = val_color
             
             if title:
-                p = tf.paragraphs[0]
-                p.text = title
-                p.font.size = Pt(14)
-                p.font.bold = True
-                p.font.color.rgb = WHITE
-            
-            if subtitle:
-                p2 = tf.add_paragraph()
-                p2.text = subtitle
-                p2.font.size = Pt(11)
-                p2.font.color.rgb = TEXT_MUTED
-                p2.space_before = Pt(4)
+                p_t = tf.add_paragraph()
+                p_t.text = title
+                p_t.font.size = Pt(13)
+                p_t.font.bold = True
+                p_t.font.color.rgb = WHITE
+                p_t.space_before = Pt(6)
+        elif title:
+            p_t = tf.paragraphs[0]
+            p_t.text = title
+            p_t.font.size = Pt(14)
+            p_t.font.bold = True
+            p_t.font.color.rgb = WHITE
+
+        if subtitle:
+            p_sub = tf.add_paragraph()
+            p_sub.text = subtitle
+            p_sub.font.size = Pt(10.5)
+            p_sub.font.color.rgb = TEXT_MUTED
+            p_sub.space_before = Pt(4)
+
         return shape
 
-    def add_animation(slide, shape):
+    def add_click_animations(slide, shapes):
+        if not shapes:
+            return
         sld = slide._element
         timing = sld.find('{http://schemas.openxmlformats.org/presentationml/2006/main}timing')
-        if timing is None:
-            timing = parse_xml(
-                '<p:timing %s>'
-                '  <p:tnLst>'
-                '    <p:par>'
-                '      <p:cTn id="1" fill="hold" subTnLst="0" dur="indefinite">'
-                '        <p:childTnLst/>'
-                '      </p:cTn>'
-                '    </p:par>'
-                '  </p:tnLst>'
-                '</p:timing>' % nsdecls('p')
-            )
-            sld.append(timing)
-        
-        child_tn_lst = timing.xpath('.//p:childTnLst')
-        if child_tn_lst:
-            shp_id = shape.shape_id
-            click_xml = parse_xml(
-                '<p:seq %s concurrent="1" nextAc="seek">'
-                '  <p:cTn id="%d" restart="whenNotActive" fill="hold" evt="onNext" nodeType="mainSeq">'
-                '    <p:childTnLst>'
-                '      <p:set>'
-                '        <p:cb>'
-                '          <p:cBhvr>'
-                '            <p:cTn id="%d" dur="1" fill="hold">'
-                '              <p:stCondLst><p:cond delay="0"/></p:stCondLst>'
-                '            </p:cTn>'
-                '            <p:tgtEl><p:spTarget spid="%d"/></p:tgtEl>'
-                '            <p:attrNameLst><p:attrName>style.visibility</p:attrName></p:attrNameLst>'
-                '          </p:cBhvr>'
-                '          <p:to><p:strVal value="visible"/></p:to>'
-                '        </p:cb>'
-                '      </p:set>'
-                '    </p:childTnLst>'
-                '  </p:cTn>'
-                '</p:seq>' % (nsdecls('p'), shp_id + 100, shp_id + 200, shp_id)
-            )
-            child_tn_lst[0].append(click_xml)
+        if timing is not None:
+            sld.remove(timing)
+
+        p_ns = 'xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"'
+        click_blocks = []
+        base_id = 100
+        for idx, shp in enumerate(shapes):
+            spid = shp.shape_id
+            c_id1 = base_id + idx * 10 + 1
+            c_id2 = base_id + idx * 10 + 2
+            c_id3 = base_id + idx * 10 + 3
+            
+            click_xml = f'''
+            <p:cTn id="{c_id1}" fill="hold" evt="onNext" nodeType="clickEffect">
+              <p:stCondLst><p:cond delay="0"/></p:stCondLst>
+              <p:childTnLst>
+                <p:set>
+                  <p:cBhvr>
+                    <p:cTn id="{c_id2}" dur="1" fill="hold"/>
+                    <p:tgtEl><p:spTarget spid="{spid}"/></p:tgtEl>
+                    <p:attrNameLst><p:attrName>style.visibility</p:attrName></p:attrNameLst>
+                  </p:cBhvr>
+                  <p:to><p:strVal value="visible"/></p:to>
+                </p:set>
+                <p:animEffect transition="in" filter="fade">
+                  <p:cBhvr>
+                    <p:cTn id="{c_id3}" dur="500" fill="hold"/>
+                    <p:tgtEl><p:spTarget spid="{spid}"/></p:tgtEl>
+                  </p:cBhvr>
+                </p:animEffect>
+              </p:childTnLst>
+            </p:cTn>
+            '''
+            click_blocks.append(click_xml)
+
+        full_timing_xml = f'''
+        <p:timing {p_ns}>
+          <p:tnLst>
+            <p:par>
+              <p:cTn id="1" fill="hold" subTnLst="0" dur="indefinite">
+                <p:childTnLst>
+                  <p:seq concurrent="1" nextAc="seek">
+                    <p:cTn id="2" nodeType="mainSeq">
+                      <p:childTnLst>
+                        {"".join(click_blocks)}
+                      </p:childTnLst>
+                    </p:cTn>
+                  </p:seq>
+                </p:childTnLst>
+              </p:cTn>
+            </p:par>
+          </p:tnLst>
+        </p:timing>
+        '''
+        sld.append(parse_xml(full_timing_xml))
 
     # ───────────────────────────────────────────────────────────────────────────
     # SLIDE 1: Cinematic Cover
@@ -145,11 +179,11 @@ def create_deck():
     c1 = add_card(s1, 1.5, 1.2, 10.33, 5.1, bg=RGBColor(15, 23, 42), border=NEON_CYAN)
     tf1 = c1.text_frame
     tf1.word_wrap = True
-    tf1.margin_top = Inches(0.8)
+    tf1.margin_top = Inches(0.6)
     
     p = tf1.paragraphs[0]
     p.text = "EcoLabel X"
-    p.font.size = Pt(54)
+    p.font.size = Pt(56)
     p.font.bold = True
     p.font.color.rgb = EMERALD_GREEN
     p.alignment = PP_ALIGN.CENTER
@@ -170,7 +204,7 @@ def create_deck():
     p_desc.space_before = Pt(24)
 
     p_hack = tf1.add_paragraph()
-    p_hack.text = "HACKATHON FINALIST PRESENTATION  •  2026"
+    p_hack.text = "WORLD-CLASS HACKATHON PRESENTATION  •  2026"
     p_hack.font.size = Pt(11)
     p_hack.font.bold = True
     p_hack.font.color.rgb = PURPLE_ACCENT
@@ -192,22 +226,25 @@ def create_deck():
     add_header(s2, 2, "Market Friction", "The Core Problem in Sustainability Disclosures")
 
     problems = [
-        ("Massive Volume", "Companies produce 100+ page ESG PDFs filled with complex tables and unstructured claims."),
-        ("Manual Friction", "Compliance officers take weeks to manually cross-reference claims against ISO standards."),
-        ("Surge in Greenwashing", "Over 40% of environmental claims online and in disclosures are vague or unsubstantiated."),
-        ("Regulatory Mandates", "Strict enforcement from EU ESPR & FTC Green Guides requires quantitative evidence.")
+        ("100+ Pages", "Massive Volume", "Companies produce hundreds of pages of unstructured ESG disclosures filled with complex tables.", RED_ACCENT),
+        ("2+ Weeks", "Manual Audit Friction", "Compliance officers take weeks to manually cross-reference claims against ISO standards.", GOLD_ACCENT),
+        ("40%", "Surge in Greenwashing", "Over 40% of environmental claims made online & in disclosures are vague or unsubstantiated.", RED_ACCENT),
+        ("Strict Fine", "Regulatory Enforcement", "Stringent laws like EU ESPR & FTC Green Guides mandate quantitative proof.", PURPLE_ACCENT)
     ]
 
-    for i, (title, desc) in enumerate(problems):
+    cards_s2 = []
+    for i, (val, title, desc, color) in enumerate(problems):
         row, col = divmod(i, 2)
-        card = add_card(s2, 0.8 + col * 5.8, 1.8 + row * 2.5, 5.5, 2.2, f"❌ {title}", desc, border=RED_ACCENT)
-        add_animation(s2, card)
+        card = add_card(s2, 0.8 + col * 5.8, 1.8 + row * 2.5, 5.5, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s2.append(card)
+
+    add_click_animations(s2, cards_s2)
 
     set_speaker_notes(
         s2,
         say="Sustainability reporting is broken. Companies produce 100-page disclosures, auditors spend weeks checking claims, and greenwashing is at an all-time high.",
         click="Click 4 times — one click per problem card.",
-        pause="Pause after revealing 'Regulatory Mandates' to emphasize urgency.",
+        pause="Pause after revealing 'Regulatory Enforcement' to emphasize urgency.",
         judges="Judges will see that we understand the quantitative friction in corporate compliance."
     )
 
@@ -218,15 +255,18 @@ def create_deck():
     add_header(s3, 3, "Our Innovation", "Introducing EcoLabel X: Instant ESG Intelligence")
 
     solutions = [
-        ("One-Click PDF Upload", "Parses multi-page ESG disclosures in seconds.", EMERALD_GREEN),
-        ("AI Claim Extraction", "Identifies exact quotes, page numbers, and keywords.", NEON_CYAN),
-        ("4-Agent AI Network", "Verification, Carbon, Compliance, and Risk agents run in parallel.", PURPLE_ACCENT),
-        ("Audit-Ready Reports", "Generates publication-ready executive PDF audit reports.", GOLD_ACCENT)
+        ("1-Click", "PDF Disclosure Upload", "Parses multi-page ESG disclosures in <1.5s.", EMERALD_GREEN),
+        ("100%", "AI Claim Extraction", "Identifies exact text quotes, page numbers & keywords.", NEON_CYAN),
+        ("4 Agents", "Multi-Agent AI Network", "Verification, Carbon, Compliance & Risk agents run in parallel.", PURPLE_ACCENT),
+        ("A4 PDF", "Executive Audit Report", "Generates publication-ready executive audit reports.", GOLD_ACCENT)
     ]
 
-    for i, (title, desc, color) in enumerate(solutions):
-        card = add_card(s3, 0.8 + i * 2.9, 1.8, 2.7, 4.8, f"⚡ {title}", desc, border=color)
-        add_animation(s3, card)
+    cards_s3 = []
+    for i, (val, title, desc, color) in enumerate(solutions):
+        card = add_card(s3, 0.8 + i * 2.9, 1.8, 2.7, 4.8, title, desc, value=val, val_color=color, border=color)
+        cards_s3.append(card)
+
+    add_click_animations(s3, cards_s3)
 
     set_speaker_notes(
         s3,
@@ -243,20 +283,23 @@ def create_deck():
     add_header(s4, 4, "Execution Flow", "8-Stage Pipeline Workflow")
 
     steps = [
-        ("1. Upload PDF", "Drag & drop report"),
-        ("2. PDF Processing", "PyPDF2 text parsing"),
-        ("3. Text Extraction", "Clean structure"),
-        ("4. Claim Detection", "Regex & NLP tags"),
-        ("5. 4 AI Agents", "Parallel analysis"),
-        ("6. Results Engine", "Score calculation"),
-        ("7. Dashboard", "Live visual data"),
-        ("8. Audit Report", "Executive PDF export")
+        ("01", "Upload PDF", "Drag & drop report", NEON_CYAN),
+        ("02", "PDF Processing", "PyPDF2 text parsing", EMERALD_GREEN),
+        ("03", "Text Extraction", "Clean structure", NEON_CYAN),
+        ("04", "Claim Detection", "Regex & NLP tags", PURPLE_ACCENT),
+        ("05", "4 AI Agents", "Parallel analysis", GOLD_ACCENT),
+        ("06", "Results Engine", "Score calculation", EMERALD_GREEN),
+        ("07", "Dashboard", "Live visual data", NEON_CYAN),
+        ("08", "Audit Report", "Executive PDF export", EMERALD_GREEN)
     ]
 
-    for i, (title, desc) in enumerate(steps):
+    cards_s4 = []
+    for i, (num, title, desc, color) in enumerate(steps):
         row, col = divmod(i, 4)
-        card = add_card(s4, 0.8 + col * 2.9, 1.8 + row * 2.5, 2.7, 2.1, title, desc, border=NEON_CYAN)
-        add_animation(s4, card)
+        card = add_card(s4, 0.8 + col * 2.9, 1.8 + row * 2.5, 2.7, 2.1, f"{num}. {title}", desc, val_color=color, border=color)
+        cards_s4.append(card)
+
+    add_click_animations(s4, cards_s4)
 
     set_speaker_notes(
         s4,
@@ -273,17 +316,20 @@ def create_deck():
     add_header(s5, 5, "System Design", "High-Performance Technical Architecture")
 
     arch_nodes = [
-        ("Next.js 14 Web App", "React, TypeScript, Glassmorphism UI", EMERALD_GREEN, 0.8, 1.8),
-        ("FastAPI Backend", "Python 3.10, Uvicorn Async Server", NEON_CYAN, 4.8, 1.8),
-        ("PyPDF2 Text Engine", "Raw PDF structure & table reader", PURPLE_ACCENT, 8.8, 1.8),
-        ("Google Gemini 2.5 Flash", "LLM reasoning + ISO 14021 rules", GOLD_ACCENT, 0.8, 4.4),
-        ("Carbon & Risk Calculators", "Scope 1-3 & Trust Score matrix", EMERALD_GREEN, 4.8, 4.4),
-        ("Executive PDF Generator", "Publication-ready A4 exporter", NEON_CYAN, 8.8, 4.4),
+        ("UI Layer", "Next.js 14 Web App", "React, TypeScript, Glassmorphism UI", EMERALD_GREEN, 0.8, 1.8),
+        ("API Layer", "FastAPI Backend", "Python 3.10, Uvicorn Async Server", NEON_CYAN, 4.8, 1.8),
+        ("Parser Layer", "PyPDF2 Text Engine", "Raw PDF structure & table reader", PURPLE_ACCENT, 8.8, 1.8),
+        ("AI Layer", "Google Gemini 2.5 Flash", "LLM reasoning + ISO 14021 rules", GOLD_ACCENT, 0.8, 4.4),
+        ("Analytics", "Carbon & Risk Engine", "Scope 1-3 & Trust Score matrix", EMERALD_GREEN, 4.8, 4.4),
+        ("Export Layer", "Executive PDF Generator", "Publication-ready A4 exporter", NEON_CYAN, 8.8, 4.4),
     ]
 
-    for title, desc, color, left, top in arch_nodes:
-        card = add_card(s5, left, top, 3.7, 2.2, title, desc, border=color)
-        add_animation(s5, card)
+    cards_s5 = []
+    for val, title, desc, color, left, top in arch_nodes:
+        card = add_card(s5, left, top, 3.7, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s5.append(card)
+
+    add_click_animations(s5, cards_s5)
 
     set_speaker_notes(
         s5,
@@ -300,16 +346,19 @@ def create_deck():
     add_header(s6, 6, "AI Core Network", "Multi-Agent Orchestration Engine")
 
     agents = [
-        ("Verification Agent", "Cross-references 400+ certification databases & ISO standards.", EMERALD_GREEN),
-        ("Carbon Agent", "Scope 1, 2 & 3 lifecycle carbon accounting engine.", NEON_CYAN),
-        ("Compliance Agent", "EU ESPR & FTC Green Guide regulatory readiness tracker.", PURPLE_ACCENT),
-        ("Risk Agent", "Detects vague, misleading, and unsubstantiated claims.", RED_ACCENT)
+        ("Agent 1", "Verification Agent", "Cross-references 400+ certification databases & ISO standards.", EMERALD_GREEN),
+        ("Agent 2", "Carbon Agent", "Scope 1, 2 & 3 lifecycle carbon accounting engine.", NEON_CYAN),
+        ("Agent 3", "Compliance Agent", "EU ESPR & FTC Green Guide regulatory readiness tracker.", PURPLE_ACCENT),
+        ("Agent 4", "Risk Agent", "Detects vague, misleading, and unsubstantiated claims.", RED_ACCENT)
     ]
 
-    for i, (title, desc, color) in enumerate(agents):
+    cards_s6 = []
+    for i, (val, title, desc, color) in enumerate(agents):
         row, col = divmod(i, 2)
-        card = add_card(s6, 0.8 + col * 5.8, 1.8 + row * 2.5, 5.5, 2.2, f"🤖 {title}", desc, border=color)
-        add_animation(s6, card)
+        card = add_card(s6, 0.8 + col * 5.8, 1.8 + row * 2.5, 5.5, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s6.append(card)
+
+    add_click_animations(s6, cards_s6)
 
     set_speaker_notes(
         s6,
@@ -326,15 +375,18 @@ def create_deck():
     add_header(s7, 7, "Agent Deep-Dive", "Verification Agent: ISO & Database Matching")
 
     v_details = [
-        ("Purpose", "Cross-references disclosures against ISO 14021 & certification registries.", EMERALD_GREEN, 0.8, 1.8),
-        ("Workflow", "Identifies claim -> Extracts evidence -> Matches issuer -> Assigns status.", NEON_CYAN, 6.8, 1.8),
-        ("Status Metrics", "Verified (Confidence > 75%) | Under Review (50-75%) | Unverified (<50%).", PURPLE_ACCENT, 0.8, 4.4),
-        ("Output Example", "ISO 14064 GHG Verified (TÜV SÜD) -> Verified (Page 2).", GOLD_ACCENT, 6.8, 4.4)
+        ("Core Goal", "Purpose & Focus", "Cross-references disclosures against ISO 14021 & certification registries.", EMERALD_GREEN, 0.8, 1.8),
+        ("4-Step", "Execution Workflow", "Identifies claim -> Extracts evidence -> Matches issuer -> Assigns status.", NEON_CYAN, 6.8, 1.8),
+        (">75%", "Status Metrics", "Verified (Confidence > 75%) | Under Review (50-75%) | Unverified (<50%).", PURPLE_ACCENT, 0.8, 4.4),
+        ("ISO 14064", "Output Example", "ISO 14064 GHG Verified (TÜV SÜD) -> Verified (Page 2).", GOLD_ACCENT, 6.8, 4.4)
     ]
 
-    for title, desc, color, left, top in v_details:
-        card = add_card(s7, left, top, 5.6, 2.2, title, desc, border=color)
-        add_animation(s7, card)
+    cards_s7 = []
+    for val, title, desc, color, left, top in v_details:
+        card = add_card(s7, left, top, 5.6, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s7.append(card)
+
+    add_click_animations(s7, cards_s7)
 
     set_speaker_notes(
         s7,
@@ -351,16 +403,19 @@ def create_deck():
     add_header(s8, 8, "Agent Deep-Dive", "Carbon Agent: Scope 1, 2 & 3 Accounting Engine")
 
     scopes = [
-        ("Scope 1: Direct Operations", "Onsite manufacturing, stationary combustion, fleet operations.", EMERALD_GREEN, 0.8, 1.8),
-        ("Scope 2: Energy & Electricity", "Purchased electricity, steam, facility heating & cooling.", NEON_CYAN, 4.8, 1.8),
-        ("Scope 3: Value Chain", "Raw material procurement, freight distribution, end-of-life.", PURPLE_ACCENT, 8.8, 1.8),
-        ("YoY Intensity Reductions", "Calculates percentage reductions across packaging & supply chain.", GOLD_ACCENT, 0.8, 4.4)
+        ("Scope 1", "Direct Operations", "Onsite manufacturing, stationary combustion, fleet operations.", EMERALD_GREEN, 0.8, 1.8),
+        ("Scope 2", "Purchased Energy", "Purchased electricity, steam, facility heating & cooling.", NEON_CYAN, 4.8, 1.8),
+        ("Scope 3", "Value Chain Impact", "Raw material procurement, freight distribution, end-of-life.", PURPLE_ACCENT, 8.8, 1.8),
+        ("-24% YoY", "Intensity Reductions", "Calculates percentage reductions across packaging & supply chain.", GOLD_ACCENT, 0.8, 4.4)
     ]
 
-    for i, (title, desc, color, left, top) in enumerate(scopes):
+    cards_s8 = []
+    for i, (val, title, desc, color, left, top) in enumerate(scopes):
         w = 11.7 if i == 3 else 3.7
-        card = add_card(s8, left, top, w, 2.2, title, desc, border=color)
-        add_animation(s8, card)
+        card = add_card(s8, left, top, w, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s8.append(card)
+
+    add_click_animations(s8, cards_s8)
 
     set_speaker_notes(
         s8,
@@ -377,15 +432,18 @@ def create_deck():
     add_header(s9, 9, "Agent Deep-Dive", "Compliance Agent: EU ESPR & FTC Green Guides")
 
     comp_items = [
-        ("EU ESPR Monitoring", "Ecodesign for Sustainable Products Regulation audit readiness check.", EMERALD_GREEN, 0.8, 1.8),
-        ("FTC Green Guide Alignment", "Ensures environmental claims meet US Federal Trade Commission standards.", NEON_CYAN, 6.8, 1.8),
-        ("Audit Compliance Index", "Calculates dynamic compliance score (0-100%) based on verified claims ratio.", PURPLE_ACCENT, 0.8, 4.4),
-        ("Regulatory Checklist", "Flags missing mandatory quantitative proof before submission.", GOLD_ACCENT, 6.8, 4.4)
+        ("EU ESPR", "Ecodesign Regulation", "Monitors Ecodesign for Sustainable Products Regulation audit readiness.", EMERALD_GREEN, 0.8, 1.8),
+        ("FTC", "Green Guide Alignment", "Ensures environmental claims meet US Federal Trade Commission standards.", NEON_CYAN, 6.8, 1.8),
+        ("0-100%", "Compliance Index", "Calculates dynamic compliance score based on verified claims ratio.", PURPLE_ACCENT, 0.8, 4.4),
+        ("Checklist", "Regulatory Verification", "Flags missing mandatory quantitative proof before submission.", GOLD_ACCENT, 6.8, 4.4)
     ]
 
-    for title, desc, color, left, top in comp_items:
-        card = add_card(s9, left, top, 5.6, 2.2, title, desc, border=color)
-        add_animation(s9, card)
+    cards_s9 = []
+    for val, title, desc, color, left, top in comp_items:
+        card = add_card(s9, left, top, 5.6, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s9.append(card)
+
+    add_click_animations(s9, cards_s9)
 
     set_speaker_notes(
         s9,
@@ -402,15 +460,18 @@ def create_deck():
     add_header(s10, 10, "Agent Deep-Dive", "Risk Agent: Misleading Claim & Vague Term Detector")
 
     risk_items = [
-        ("Vague Term Detection", "Flags buzzwords like 'eco-friendly', 'green', and 'pure' without data.", RED_ACCENT, 0.8, 1.8),
-        ("Missing Baseline Flags", "Detects reduction claims that lack a declared baseline year.", GOLD_ACCENT, 6.8, 1.8),
-        ("Greenwashing Risk Score", "Objective 0-100 risk score (Low, Medium, High Risk).", NEON_CYAN, 0.8, 4.4),
-        ("Auditor Recommendations", "Generates concrete corrective action steps for compliance officers.", EMERALD_GREEN, 6.8, 4.4)
+        ("Vague", "Buzzword Detection", "Flags terms like 'eco-friendly', 'green', and 'pure' without data.", RED_ACCENT, 0.8, 1.8),
+        ("Baseline", "Missing Year Flags", "Detects reduction claims that lack a declared baseline year.", GOLD_ACCENT, 6.8, 1.8),
+        ("0-100", "Risk Scoring Matrix", "Objective 0-100 risk score (Low, Medium, High Risk).", NEON_CYAN, 0.8, 4.4),
+        ("Mitigate", "Auditor Guidance", "Generates concrete corrective action steps for compliance officers.", EMERALD_GREEN, 6.8, 4.4)
     ]
 
-    for title, desc, color, left, top in risk_items:
-        card = add_card(s10, left, top, 5.6, 2.2, title, desc, border=color)
-        add_animation(s10, card)
+    cards_s10 = []
+    for val, title, desc, color, left, top in risk_items:
+        card = add_card(s10, left, top, 5.6, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s10.append(card)
+
+    add_click_animations(s10, cards_s10)
 
     set_speaker_notes(
         s10,
@@ -427,15 +488,18 @@ def create_deck():
     add_header(s11, 11, "Product Experience", "Centralized Overview Dashboard UI")
 
     dash_widgets = [
-        ("Top 4 KPI Scorecards", "Portfolio EcoScore, Carbon Footprint, Active Labels, SKUs.", EMERALD_GREEN, 0.8, 1.8),
-        ("AI Agent Live Status", "Real-time task monitor for 4 active backend agents.", NEON_CYAN, 6.8, 1.8),
-        ("Trust & Carbon Widgets", "Interactive Trust Score ring & 12-month carbon trend.", PURPLE_ACCENT, 0.8, 4.4),
-        ("Upload & History Card", "Instant drag-and-drop PDF dropzone + upload history.", GOLD_ACCENT, 6.8, 4.4)
+        ("Top KPIs", "Scorecards Grid", "Portfolio EcoScore, Carbon Footprint, Active Labels, SKUs.", EMERALD_GREEN, 0.8, 1.8),
+        ("4 Agents", "AI Status Cards", "Real-time task monitor for 4 active backend agents.", NEON_CYAN, 6.8, 1.8),
+        ("Widgets", "Trust & Carbon Score", "Interactive Trust Score ring & 12-month carbon trend.", PURPLE_ACCENT, 0.8, 4.4),
+        ("Upload", "Dropzone & History", "Instant drag-and-drop PDF dropzone + upload history.", GOLD_ACCENT, 6.8, 4.4)
     ]
 
-    for title, desc, color, left, top in dash_widgets:
-        card = add_card(s11, left, top, 5.6, 2.2, title, desc, border=color)
-        add_animation(s11, card)
+    cards_s11 = []
+    for val, title, desc, color, left, top in dash_widgets:
+        card = add_card(s11, left, top, 5.6, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s11.append(card)
+
+    add_click_animations(s11, cards_s11)
 
     set_speaker_notes(
         s11,
@@ -452,15 +516,18 @@ def create_deck():
     add_header(s12, 12, "Product Intelligence", "Automated Product & SKU Extraction")
 
     prod_items = [
-        ("Automated Extraction", "Extracts product names & SKUs directly from PDF disclosures.", EMERALD_GREEN, 0.8, 1.8),
-        ("Category Classification", "Groups items into Electronics, Packaging, Agriculture & Materials.", NEON_CYAN, 6.8, 1.8),
-        ("Carbon Impact Per Unit", "Assigns estimated product carbon intensity footprint.", PURPLE_ACCENT, 0.8, 4.4),
-        ("Verification Status", "Displays Verified vs Pending review status per product.", GOLD_ACCENT, 6.8, 4.4)
+        ("SKUs", "Automated Extraction", "Extracts product names & SKUs directly from PDF disclosures.", EMERALD_GREEN, 0.8, 1.8),
+        ("Categories", "Classification Engine", "Groups items into Electronics, Packaging, Agriculture & Materials.", NEON_CYAN, 6.8, 1.8),
+        ("Impact", "Unit Carbon Footprint", "Assigns estimated product carbon intensity footprint.", PURPLE_ACCENT, 0.8, 4.4),
+        ("Status", "Verification Tracking", "Displays Verified vs Pending review status per product.", GOLD_ACCENT, 6.8, 4.4)
     ]
 
-    for title, desc, color, left, top in prod_items:
-        card = add_card(s12, left, top, 5.6, 2.2, title, desc, border=color)
-        add_animation(s12, card)
+    cards_s12 = []
+    for val, title, desc, color, left, top in prod_items:
+        card = add_card(s12, left, top, 5.6, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s12.append(card)
+
+    add_click_animations(s12, cards_s12)
 
     set_speaker_notes(
         s12,
@@ -477,15 +544,18 @@ def create_deck():
     add_header(s13, 13, "Claim Detector", "NLP & Keyword Claim Extraction Pipeline")
 
     cd_items = [
-        ("Exact Quote Parsing", "Extracts exact environmental text snippets from disclosures.", EMERALD_GREEN, 0.8, 1.8),
-        ("Page Number Mapping", "Pinpoints exact PDF page location for auditor inspection.", NEON_CYAN, 6.8, 1.8),
-        ("Keyword Weighting", "Identifies matched terms like 'RE100', 'net zero', 'recycled'.", PURPLE_ACCENT, 0.8, 4.4),
-        ("Confidence Scoring", "Assigns AI confidence score (0-100%) to every extracted claim.", GOLD_ACCENT, 6.8, 4.4)
+        ("Quotes", "Exact Text Snippets", "Extracts exact environmental text snippets from disclosures.", EMERALD_GREEN, 0.8, 1.8),
+        ("Pages", "PDF Page Mapping", "Pinpoints exact PDF page location for auditor inspection.", NEON_CYAN, 6.8, 1.8),
+        ("Keywords", "Matched Term Tags", "Identifies matched terms like 'RE100', 'net zero', 'recycled'.", PURPLE_ACCENT, 0.8, 4.4),
+        ("Score", "AI Confidence Rating", "Assigns AI confidence score (0-100%) to every extracted claim.", GOLD_ACCENT, 6.8, 4.4)
     ]
 
-    for title, desc, color, left, top in cd_items:
-        card = add_card(s13, left, top, 5.6, 2.2, title, desc, border=color)
-        add_animation(s13, card)
+    cards_s13 = []
+    for val, title, desc, color, left, top in cd_items:
+        card = add_card(s13, left, top, 5.6, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s13.append(card)
+
+    add_click_animations(s13, cards_s13)
 
     set_speaker_notes(
         s13,
@@ -502,15 +572,18 @@ def create_deck():
     add_header(s14, 14, "Evidence Verifier", "Automated ISO & Standards Verification")
 
     ev_items = [
-        ("Evidence Search", "Searches quantitative data within the report to back claims.", EMERALD_GREEN, 0.8, 1.8),
-        ("ISO Rule Checking", "Validates claims against ISO 14021 environmental self-declarations.", NEON_CYAN, 6.8, 1.8),
-        ("Rationale Generation", "Generates clear AI explanation for why a claim is verified or flagged.", PURPLE_ACCENT, 0.8, 4.4),
-        ("Verification Badge", "Outputs Verified, Under Review, or Unverified status badges.", GOLD_ACCENT, 6.8, 4.4)
+        ("Evidence", "Quantitative Search", "Searches quantitative data within the report to back claims.", EMERALD_GREEN, 0.8, 1.8),
+        ("ISO Rules", "Self-Declaration Check", "Validates claims against ISO 14021 environmental self-declarations.", NEON_CYAN, 6.8, 1.8),
+        ("Rationale", "AI Explanation Logic", "Generates clear AI explanation for why a claim is verified or flagged.", PURPLE_ACCENT, 0.8, 4.4),
+        ("Badges", "Status Output", "Outputs Verified, Under Review, or Unverified status badges.", GOLD_ACCENT, 6.8, 4.4)
     ]
 
-    for title, desc, color, left, top in ev_items:
-        card = add_card(s14, left, top, 5.6, 2.2, title, desc, border=color)
-        add_animation(s14, card)
+    cards_s14 = []
+    for val, title, desc, color, left, top in ev_items:
+        card = add_card(s14, left, top, 5.6, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s14.append(card)
+
+    add_click_animations(s14, cards_s14)
 
     set_speaker_notes(
         s14,
@@ -527,15 +600,18 @@ def create_deck():
     add_header(s15, 15, "Risk Analyzer", "Greenwashing Risk Matrix & Recommendations")
 
     gw_items = [
-        ("Risk Level Classification", "Categorizes overall risk into Low, Medium, or High Risk.", RED_ACCENT, 0.8, 1.8),
-        ("Risk Driver Breakdown", "Lists specific reasons (e.g. unverified packaging claim).", GOLD_ACCENT, 6.8, 1.8),
-        ("Missing Evidence List", "Flags missing third-party certificates or audit documents.", NEON_CYAN, 0.8, 4.4),
-        ("Actionable Guidance", "Provides prioritized recommendation steps for risk mitigation.", EMERALD_GREEN, 6.8, 4.4)
+        ("Levels", "Risk Classification", "Categorizes overall risk into Low, Medium, or High Risk.", RED_ACCENT, 0.8, 1.8),
+        ("Drivers", "Risk Drivers Breakdown", "Lists specific reasons (e.g. unverified packaging claim).", GOLD_ACCENT, 6.8, 1.8),
+        ("Missing", "Proof Gap Detector", "Flags missing third-party certificates or audit documents.", NEON_CYAN, 0.8, 4.4),
+        ("Action", "Mitigation Guidance", "Provides prioritized recommendation steps for risk mitigation.", EMERALD_GREEN, 6.8, 4.4)
     ]
 
-    for title, desc, color, left, top in gw_items:
-        card = add_card(s15, left, top, 5.6, 2.2, title, desc, border=color)
-        add_animation(s15, card)
+    cards_s15 = []
+    for val, title, desc, color, left, top in gw_items:
+        card = add_card(s15, left, top, 5.6, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s15.append(card)
+
+    add_click_animations(s15, cards_s15)
 
     set_speaker_notes(
         s15,
@@ -552,15 +628,18 @@ def create_deck():
     add_header(s16, 16, "Carbon Analytics", "Scope 1, 2 & 3 Footprint Visualization")
 
     car_items = [
-        ("Scope 1 Direct", "Onsite manufacturing & facility emissions (kt CO2e).", EMERALD_GREEN, 0.8, 1.8),
-        ("Scope 2 Energy", "Purchased electricity & heating emissions (kt CO2e).", NEON_CYAN, 6.8, 1.8),
-        ("Scope 3 Value Chain", "Raw material, freight & distribution emissions (kt CO2e).", PURPLE_ACCENT, 0.8, 4.4),
-        ("Intensity Reductions", "Visual progress bars tracking YoY carbon reduction targets.", GOLD_ACCENT, 6.8, 4.4)
+        ("Scope 1", "Direct Emissions", "Onsite manufacturing & facility emissions (kt CO2e).", EMERALD_GREEN, 0.8, 1.8),
+        ("Scope 2", "Energy Emissions", "Purchased electricity & heating emissions (kt CO2e).", NEON_CYAN, 6.8, 1.8),
+        ("Scope 3", "Value Chain Impact", "Raw material, freight & distribution emissions (kt CO2e).", PURPLE_ACCENT, 0.8, 4.4),
+        ("Progress", "YoY Intensity Target", "Visual progress bars tracking YoY carbon reduction targets.", GOLD_ACCENT, 6.8, 4.4)
     ]
 
-    for title, desc, color, left, top in car_items:
-        card = add_card(s16, left, top, 5.6, 2.2, title, desc, border=color)
-        add_animation(s16, card)
+    cards_s16 = []
+    for val, title, desc, color, left, top in car_items:
+        card = add_card(s16, left, top, 5.6, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s16.append(card)
+
+    add_click_animations(s16, cards_s16)
 
     set_speaker_notes(
         s16,
@@ -577,15 +656,18 @@ def create_deck():
     add_header(s17, 17, "Compliance Analytics", "Category Distribution & Audit Index")
 
     ana_items = [
-        ("Category Distribution", "Visual breakdown of claims across Energy, Carbon, Packaging, and Supply Chain.", EMERALD_GREEN, 0.8, 1.8),
-        ("Audit Compliance Index", "Dynamic score evaluating EU ESPR & FTC Green Guide readiness.", NEON_CYAN, 6.8, 1.8),
-        ("Verification Rate", "Displays percentage of total claims backed by quantitative proof.", PURPLE_ACCENT, 0.8, 4.4),
-        ("Audit Readiness Rating", "Categorizes overall audit readiness from High to Action Needed.", GOLD_ACCENT, 6.8, 4.4)
+        ("Categories", "Claim Distribution", "Visual breakdown of claims across Energy, Carbon, Packaging, and Supply Chain.", EMERALD_GREEN, 0.8, 1.8),
+        ("Index", "Compliance Rating", "Dynamic score evaluating EU ESPR & FTC Green Guide readiness.", NEON_CYAN, 6.8, 1.8),
+        ("Rate", "Verification Ratio", "Displays percentage of total claims backed by quantitative proof.", PURPLE_ACCENT, 0.8, 4.4),
+        ("Readiness", "Audit Rating", "Categorizes overall audit readiness from High to Action Needed.", GOLD_ACCENT, 6.8, 4.4)
     ]
 
-    for title, desc, color, left, top in ana_items:
-        card = add_card(s17, left, top, 5.6, 2.2, title, desc, border=color)
-        add_animation(s17, card)
+    cards_s17 = []
+    for val, title, desc, color, left, top in ana_items:
+        card = add_card(s17, left, top, 5.6, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s17.append(card)
+
+    add_click_animations(s17, cards_s17)
 
     set_speaker_notes(
         s17,
@@ -602,15 +684,18 @@ def create_deck():
     add_header(s18, 18, "Certification Registry", "Automated Eco Label Identification")
 
     labels_list = [
-        ("ISO 14064 GHG Verified", "TÜV SÜD / WRI Emissions Assurance", EMERALD_GREEN, 0.8, 1.8),
-        ("FSC Certified Packaging", "Forest Stewardship Council Chain of Custody", NEON_CYAN, 6.8, 1.8),
-        ("RE100 Renewable Power", "Climate Group 100% Clean Energy Mark", PURPLE_ACCENT, 0.8, 4.4),
-        ("EU Organic & Fairtrade", "European Commission & Fairtrade International", GOLD_ACCENT, 6.8, 4.4)
+        ("ISO 14064", "GHG Verification Seal", "TÜV SÜD / WRI Emissions Assurance Mark", EMERALD_GREEN, 0.8, 1.8),
+        ("FSC Paper", "Packaging Certification", "Forest Stewardship Council Chain of Custody", NEON_CYAN, 6.8, 1.8),
+        ("RE100", "Renewable Power Mark", "Climate Group 100% Clean Energy Mark", PURPLE_ACCENT, 0.8, 4.4),
+        ("Organic", "Fairtrade & EU Organic", "European Commission & Fairtrade International", GOLD_ACCENT, 6.8, 4.4)
     ]
 
-    for title, desc, color, left, top in labels_list:
-        card = add_card(s18, left, top, 5.6, 2.2, title, desc, border=color)
-        add_animation(s18, card)
+    cards_s18 = []
+    for val, title, desc, color, left, top in labels_list:
+        card = add_card(s18, left, top, 5.6, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s18.append(card)
+
+    add_click_animations(s18, cards_s18)
 
     set_speaker_notes(
         s18,
@@ -627,15 +712,18 @@ def create_deck():
     add_header(s19, 19, "Executive Reporting", "Publication-Ready A4 PDF Report Exporter")
 
     rep_items = [
-        ("Official Letterhead", "EcoLabel X header with ISO 14021 compliance seal & metadata.", EMERALD_GREEN, 0.8, 1.8),
-        ("KPI Scorecards", "Overall Trust Score, Risk Score, Claims Ratio scorecard grid.", NEON_CYAN, 6.8, 1.8),
-        ("Claims Directory Table", "Complete table of verified & flagged claims with PDF page numbers.", PURPLE_ACCENT, 0.8, 4.4),
-        ("Auditor Sign-off Block", "Prioritized recommendations & formal auditor signature section.", GOLD_ACCENT, 6.8, 4.4)
+        ("Header", "Official Letterhead", "EcoLabel X header with ISO 14021 compliance seal & metadata.", EMERALD_GREEN, 0.8, 1.8),
+        ("Scorecard", "KPI Summary Grid", "Overall Trust Score, Risk Score, Claims Ratio scorecard grid.", NEON_CYAN, 6.8, 1.8),
+        ("Directory", "Claims Directory Table", "Complete table of verified & flagged claims with PDF page numbers.", PURPLE_ACCENT, 0.8, 4.4),
+        ("Sign-off", "Auditor Signature Block", "Prioritized recommendations & formal auditor signature section.", GOLD_ACCENT, 6.8, 4.4)
     ]
 
-    for title, desc, color, left, top in rep_items:
-        card = add_card(s19, left, top, 5.6, 2.2, title, desc, border=color)
-        add_animation(s19, card)
+    cards_s19 = []
+    for val, title, desc, color, left, top in rep_items:
+        card = add_card(s19, left, top, 5.6, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s19.append(card)
+
+    add_click_animations(s19, cards_s19)
 
     set_speaker_notes(
         s19,
@@ -652,15 +740,18 @@ def create_deck():
     add_header(s20, 20, "Engineering Core", "Modern Full-Stack Technology Suite")
 
     tech_items = [
-        ("Next.js 14 App Router", "React, TypeScript, Glassmorphic UI framework", EMERALD_GREEN, 0.8, 1.8),
-        ("FastAPI Backend", "Async Python 3.10 server with Pydantic v2 schemas", NEON_CYAN, 6.8, 1.8),
-        ("Google Gemini 2.5 Flash", "Generative AI LLM reasoning & claim analysis", PURPLE_ACCENT, 0.8, 4.4),
-        ("PyPDF2 & PDF Exporter", "Raw PDF extraction & A4 publication exporter", GOLD_ACCENT, 6.8, 4.4)
+        ("Next.js 14", "Frontend Framework", "React, TypeScript, Glassmorphic UI framework", EMERALD_GREEN, 0.8, 1.8),
+        ("FastAPI", "Async Backend Server", "Async Python 3.10 server with Pydantic v2 schemas", NEON_CYAN, 6.8, 1.8),
+        ("Gemini 2.5", "Generative AI LLM", "Google Gemini 2.5 Flash LLM reasoning & claim analysis", PURPLE_ACCENT, 0.8, 4.4),
+        ("PyPDF2", "PDF & Exporter Engine", "Raw PDF extraction & A4 publication exporter", GOLD_ACCENT, 6.8, 4.4)
     ]
 
-    for title, desc, color, left, top in tech_items:
-        card = add_card(s20, left, top, 5.6, 2.2, title, desc, border=color)
-        add_animation(s20, card)
+    cards_s20 = []
+    for val, title, desc, color, left, top in tech_items:
+        card = add_card(s20, left, top, 5.6, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s20.append(card)
+
+    add_click_animations(s20, cards_s20)
 
     set_speaker_notes(
         s20,
@@ -677,15 +768,18 @@ def create_deck():
     add_header(s21, 21, "Competitive Edge", "Why EcoLabel X Is Unique")
 
     inno_items = [
-        ("1.5-Second Execution", "Replaces days of manual PDF auditing with instant analysis.", EMERALD_GREEN, 0.8, 1.8),
-        ("4 Parallel AI Agents", "Multi-agent architecture evaluating distinct compliance vectors.", NEON_CYAN, 6.8, 1.8),
-        ("Evidence-Backed Scoring", "Every score is linked to exact text quotes and PDF page numbers.", PURPLE_ACCENT, 0.8, 4.4),
-        ("One-Click Executive PDF", "Generates publication-ready A4 executive audit reports.", GOLD_ACCENT, 6.8, 4.4)
+        ("<1.5s", "Instant Execution Speed", "Replaces days of manual PDF auditing with instant analysis.", EMERALD_GREEN, 0.8, 1.8),
+        ("4 Agents", "Parallel AI Multi-Agent", "Multi-agent architecture evaluating distinct compliance vectors.", NEON_CYAN, 6.8, 1.8),
+        ("100%", "Traceable ISO Evidence", "Every score is linked to exact text quotes and PDF page numbers.", PURPLE_ACCENT, 0.8, 4.4),
+        ("1-Click", "Executive PDF Exporter", "Generates publication-ready A4 executive audit reports.", GOLD_ACCENT, 6.8, 4.4)
     ]
 
-    for title, desc, color, left, top in inno_items:
-        card = add_card(s21, left, top, 5.6, 2.2, title, desc, border=color)
-        add_animation(s21, card)
+    cards_s21 = []
+    for val, title, desc, color, left, top in inno_items:
+        card = add_card(s21, left, top, 5.6, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s21.append(card)
+
+    add_click_animations(s21, cards_s21)
 
     set_speaker_notes(
         s21,
@@ -702,15 +796,18 @@ def create_deck():
     add_header(s22, 22, "Product Vision", "Future Roadmap & Strategic Scope")
 
     road_items = [
-        ("OCR for Scanned PDFs", "Integrating Tesseract/Vision API for scanned legacy documents.", EMERALD_GREEN, 0.8, 1.8),
-        ("Multi-Language Support", "Auditing ESG reports in German, French, Spanish & Mandarin.", NEON_CYAN, 6.8, 1.8),
-        ("Live Regulatory Feeds", "Real-time updates as EU ESPR & FTC regulations evolve.", PURPLE_ACCENT, 0.8, 4.4),
-        ("Enterprise Peer Benchmarking", "Comparing ESG performance across industry competitors.", GOLD_ACCENT, 6.8, 4.4)
+        ("OCR", "Scanned Document Engine", "Integrating Tesseract/Vision API for scanned legacy documents.", EMERALD_GREEN, 0.8, 1.8),
+        ("Global", "Multi-Language Support", "Auditing ESG reports in German, French, Spanish & Mandarin.", NEON_CYAN, 6.8, 1.8),
+        ("Live API", "Regulatory Feeds", "Real-time updates as EU ESPR & FTC regulations evolve.", PURPLE_ACCENT, 0.8, 4.4),
+        ("Peer", "Enterprise Benchmarking", "Comparing ESG performance across industry competitors.", GOLD_ACCENT, 6.8, 4.4)
     ]
 
-    for title, desc, color, left, top in road_items:
-        card = add_card(s22, left, top, 5.6, 2.2, title, desc, border=color)
-        add_animation(s22, card)
+    cards_s22 = []
+    for val, title, desc, color, left, top in road_items:
+        card = add_card(s22, left, top, 5.6, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s22.append(card)
+
+    add_click_animations(s22, cards_s22)
 
     set_speaker_notes(
         s22,
@@ -727,15 +824,18 @@ def create_deck():
     add_header(s23, 23, "Live Demonstration", "Step-by-Step Live Walkthrough Flow")
 
     demo_steps = [
-        ("Step 1: Select & Upload", "Drag PDF report into dropzone", EMERALD_GREEN, 0.8, 1.8),
-        ("Step 2: Instant Analysis", "Backend parses PDF in <1.5s", NEON_CYAN, 6.8, 1.8),
-        ("Step 3: Dashboard Insights", "Explore EcoScore & Carbon Cards", PURPLE_ACCENT, 0.8, 4.4),
-        ("Step 4: Export Audit PDF", "Download publication-ready report", GOLD_ACCENT, 6.8, 4.4)
+        ("Step 1", "Upload PDF Report", "Drag PDF report into dropzone", EMERALD_GREEN, 0.8, 1.8),
+        ("Step 2", "Instant Analysis", "Backend parses PDF in <1.5s", NEON_CYAN, 6.8, 1.8),
+        ("Step 3", "Dashboard Insights", "Explore EcoScore & Carbon Cards", PURPLE_ACCENT, 0.8, 4.4),
+        ("Step 4", "Export Audit PDF", "Download publication-ready report", GOLD_ACCENT, 6.8, 4.4)
     ]
 
-    for title, desc, color, left, top in demo_steps:
-        card = add_card(s23, left, top, 5.6, 2.2, title, desc, border=color)
-        add_animation(s23, card)
+    cards_s23 = []
+    for val, title, desc, color, left, top in demo_steps:
+        card = add_card(s23, left, top, 5.6, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s23.append(card)
+
+    add_click_animations(s23, cards_s23)
 
     set_speaker_notes(
         s23,
@@ -752,15 +852,18 @@ def create_deck():
     add_header(s24, 24, "Value Created", "Quantifiable Business & ESG Impact")
 
     impact_items = [
-        ("95% Audit Time Reduction", "Reduces ESG report analysis from weeks to 1.5 seconds.", EMERALD_GREEN, 0.8, 1.8),
-        ("100% Audit Transparency", "Every score is linked to exact quotes and PDF page numbers.", NEON_CYAN, 6.8, 1.8),
-        ("Zero Regulatory Penalties", "Prevents costly EU ESPR & FTC Green Guide non-compliance fines.", PURPLE_ACCENT, 0.8, 4.4),
-        ("Real Carbon Accountability", "Accelerates genuine Scope 1-3 reduction across supply chains.", GOLD_ACCENT, 6.8, 4.4)
+        ("95%", "Audit Time Reduction", "Reduces ESG report analysis from weeks to 1.5 seconds.", EMERALD_GREEN, 0.8, 1.8),
+        ("100%", "Audit Traceability", "Every score is linked to exact quotes and PDF page numbers.", NEON_CYAN, 6.8, 1.8),
+        ("$0 Fines", "Regulatory Protection", "Prevents costly EU ESPR & FTC Green Guide non-compliance fines.", PURPLE_ACCENT, 0.8, 4.4),
+        ("Scope 1-3", "Carbon Accountability", "Accelerates genuine Scope 1-3 reduction across supply chains.", GOLD_ACCENT, 6.8, 4.4)
     ]
 
-    for title, desc, color, left, top in impact_items:
-        card = add_card(s24, left, top, 5.6, 2.2, title, desc, border=color)
-        add_animation(s24, card)
+    cards_s24 = []
+    for val, title, desc, color, left, top in impact_items:
+        card = add_card(s24, left, top, 5.6, 2.2, title, desc, value=val, val_color=color, border=color)
+        cards_s24.append(card)
+
+    add_click_animations(s24, cards_s24)
 
     set_speaker_notes(
         s24,
